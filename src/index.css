@@ -1,44 +1,81 @@
 @import "tailwindcss";
 
-:root {
-  font-family:
-    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
-    sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-  color: #334155;
-  background: #ffffff;
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+@layer base {
+
+  :root {
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    line-height: 1.5;
+    font-weight: 400;
+    color: #334155;
+    background: #ffffff;
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+  }
+
+  html {
+    min-height: 100%;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    @apply bg-parchment text-stone-900 font-sans;
+    font-size: 1rem;
+    line-height: 1.6;
+  }
+
+  #root {
+    min-height: 100vh;
+  }
+
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  h1, h2 {
+    @apply font-display font-normal tracking-tighter leading-tight text-stone-900;
+  }
+
+  h3, h4, h5, h6 {
+    @apply font-sans font-medium leading-snug text-stone-900;
+  }
+
+  a {
+    @apply text-leaf underline underline-offset-[3px] transition-fast;
+  }
+  a:hover {
+    @apply text-forest;
+  }
+
+  button,
+  input,
+  textarea,
+  select {
+    font: inherit;
+  }
+
+  :focus-visible {
+    outline: none;
+    box-shadow: theme('boxShadow.focus');
+    border-radius: theme('borderRadius.sm');
+  }
+
+  ::-webkit-scrollbar       { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { @apply bg-stone-100; }
+  ::-webkit-scrollbar-thumb { @apply bg-sage rounded-full; }
+  ::-webkit-scrollbar-thumb:hover { @apply bg-leaf; }
+
+  ::selection {
+    @apply bg-moss text-forest;
+  }
 }
 
-html {
-  min-height: 100%;
-}
-
-body {
-  margin: 0;
-  min-height: 100vh;
-}
-
-#root {
-  min-height: 100vh;
-}
-
-* {
-  box-sizing: border-box;
-}
-
-a {
-  color: inherit;
-  text-decoration: none;
-}
-
-button,
-input,
-textarea,
-select {
-  font: inherit;
+@layer utilities {
+  .transition-fast   { transition: all 150ms ease; }
+  .transition-base   { transition: all 220ms ease; }
+  .transition-slow   { transition: all 350ms cubic-bezier(0.4, 0, 0.2, 1); }
+  .transition-spring { transition: all 400ms cubic-bezier(0.34, 1.56, 0.64, 1); }
 }
