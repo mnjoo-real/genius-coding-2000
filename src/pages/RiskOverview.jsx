@@ -1,11 +1,33 @@
 import { Link } from "react-router-dom";
+import RiskCard from "../components/risk/RiskCard";
+import { getRiskLevel } from "../utils/getRiskLevel";
 
 const riskCategoryFields = [
-  { label: "Flood", field: "floodRisk" },
-  { label: "Wildfire", field: "wildfireRisk" },
-  { label: "Heat Wave", field: "heatRisk" },
-  { label: "Storm", field: "stormRisk" },
-  { label: "Winter Storm", field: "winterStormRisk" },
+  {
+    label: "Flood",
+    field: "floodRisk",
+    description: "Regional exposure to flooding and stormwater impacts.",
+  },
+  {
+    label: "Wildfire",
+    field: "wildfireRisk",
+    description: "Regional exposure to wildfire and ember-related hazards.",
+  },
+  {
+    label: "Heat Wave",
+    field: "heatRisk",
+    description: "Regional exposure to extended high-heat conditions.",
+  },
+  {
+    label: "Storm",
+    field: "stormRisk",
+    description: "Regional exposure to severe storms, wind, and heavy rain.",
+  },
+  {
+    label: "Winter Storm",
+    field: "winterStormRisk",
+    description: "Regional exposure to snow, ice, and freezing conditions.",
+  },
 ];
 
 function readRegionalRisk() {
@@ -60,10 +82,15 @@ export default function RiskOverview() {
       }
     : null;
   const riskCategories = regionalRisk
-    ? riskCategoryFields.map((riskCategory) => ({
-        ...riskCategory,
-        score: getRiskScore(regionalRisk[riskCategory.field]),
-      }))
+    ? riskCategoryFields.map((riskCategory) => {
+        const score = getRiskScore(regionalRisk[riskCategory.field]);
+
+        return {
+          ...riskCategory,
+          score,
+          level: getRiskLevel(score).toLowerCase(),
+        };
+      })
     : [];
 
   return (
@@ -143,7 +170,7 @@ export default function RiskOverview() {
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
+              <div>
                 <p className="text-sm font-medium uppercase tracking-[0.2em] text-leaf">
                   Risk Cards & Chart
                 </p>
@@ -154,17 +181,13 @@ export default function RiskOverview() {
                 </p>
                 <div className="mt-5 grid gap-3">
                   {riskCategories.map((riskCategory) => (
-                    <div
+                    <RiskCard
                       key={riskCategory.field}
-                      className="flex items-center justify-between rounded-xl border border-stone-200 bg-parchment/60 px-4 py-3"
-                    >
-                      <span className="font-medium text-stone-800">
-                        {riskCategory.label}
-                      </span>
-                      <span className="text-sm font-medium text-forest">
-                        {riskCategory.score}/100
-                      </span>
-                    </div>
+                      disasterType={riskCategory.label}
+                      riskLevel={riskCategory.level}
+                      riskPercent={riskCategory.score}
+                      description={riskCategory.description}
+                    />
                   ))}
                 </div>
               </div>
