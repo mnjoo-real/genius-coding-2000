@@ -223,7 +223,7 @@ Risk scores are from `0` to `100`.
 
 Should export `homeQuestions`.
 
-Include 12 questions:
+Include 20 questions:
 
 Flood:
 
@@ -560,7 +560,7 @@ Purpose:
 Requirements:
 
 * Require all questions before continuing.
-* Show progress count, such as `8 of 12 answered`.
+* Show progress count, such as `8 of 20 answered`.
 * Navigate to `/dashboard` after saving.
 
 ### `ScoreDashboard.jsx`
@@ -809,7 +809,7 @@ Before considering the frontend done, test:
 [ ] sample ZIP 14623 loads Rochester risk profile
 [ ] unknown ZIP uses fallback profile
 [ ] /risk shows regional risks
-[ ] /questionnaire shows all 12 questions
+[ ] /questionnaire shows all 20 questions
 [ ] unanswered questions block submit
 [ ] answers save to localStorage
 [ ] /dashboard shows score
