@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import RiskBarChart from "../components/risk/RiskBarChart";
 import RiskCard from "../components/risk/RiskCard";
 import { getRiskLevel } from "../utils/getRiskLevel";
 
@@ -6,26 +7,31 @@ const riskCategoryFields = [
   {
     label: "Flood",
     field: "floodRisk",
+    color: "#6d8f4a",
     description: "Regional exposure to flooding and stormwater impacts.",
   },
   {
     label: "Wildfire",
     field: "wildfireRisk",
+    color: "#ef4444",
     description: "Regional exposure to wildfire and ember-related hazards.",
   },
   {
     label: "Heat Wave",
     field: "heatRisk",
+    color: "#f59e0b",
     description: "Regional exposure to extended high-heat conditions.",
   },
   {
     label: "Storm",
     field: "stormRisk",
+    color: "#2f5d40",
     description: "Regional exposure to severe storms, wind, and heavy rain.",
   },
   {
     label: "Winter Storm",
     field: "winterStormRisk",
+    color: "#a8b89a",
     description: "Regional exposure to snow, ice, and freezing conditions.",
   },
 ];
@@ -92,6 +98,11 @@ export default function RiskOverview() {
         };
       })
     : [];
+  const chartRisks = riskCategories.map((riskCategory) => ({
+    label: riskCategory.label,
+    value: riskCategory.score,
+    color: riskCategory.color,
+  }));
 
   return (
     <main className="min-h-screen bg-parchment px-6 py-12 sm:py-16">
@@ -179,6 +190,9 @@ export default function RiskOverview() {
                   Risk cards and a chart will summarize flood, wildfire, heat,
                   storm, and winter storm exposure here.
                 </p>
+                <div className="mt-5 rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
+                  <RiskBarChart risks={chartRisks} />
+                </div>
                 <div className="mt-5 grid gap-3">
                   {riskCategories.map((riskCategory) => (
                     <RiskCard
