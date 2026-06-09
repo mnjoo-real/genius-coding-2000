@@ -1,5 +1,14 @@
 @import "tailwindcss";
 
+@theme {
+  --color-parchment: #f7f3ea;
+  --color-leaf: #6d8f4a;
+  --color-forest: #2f5d40;
+  --color-sage: #a8b89a;
+  --color-moss: #dfe7c8;
+  --font-display: ui-serif, Georgia, Cambria, "Times New Roman", serif;
+}
+
 @layer base {
 
   :root {
@@ -8,6 +17,7 @@
     font-weight: 400;
     color: #334155;
     background: #ffffff;
+    --focus-ring: 0 0 0 3px rgb(132 204 22 / 0.28);
     font-synthesis: none;
     text-rendering: optimizeLegibility;
   }
@@ -44,7 +54,8 @@
   }
 
   a {
-    @apply text-leaf underline underline-offset-[3px] transition-fast;
+    @apply text-leaf underline underline-offset-[3px];
+    transition: all 150ms ease;
   }
   a:hover {
     @apply text-forest;
@@ -59,8 +70,8 @@
 
   :focus-visible {
     outline: none;
-    box-shadow: theme('boxShadow.focus');
-    border-radius: theme('borderRadius.sm');
+    box-shadow: var(--focus-ring);
+    border-radius: 0.25rem;
   }
 
   ::-webkit-scrollbar       { width: 6px; height: 6px; }
