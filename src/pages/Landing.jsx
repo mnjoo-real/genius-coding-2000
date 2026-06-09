@@ -1,10 +1,9 @@
-import { useState, useRef, useEffect, lazy, Suspense } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import mapboxgl from 'mapbox-gl';
+import 'mapbox-gl/dist/mapbox-gl.css';
 import Button from '../components/ui/Button';
 import { regionalRiskData, fallbackRiskData } from '../data/regionalRiskData';
-
-// Lazy-load the heavy Three.js globe so it doesn't block initial paint
-const Globe = lazy(() => import('react-globe.gl'));
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
@@ -126,35 +125,59 @@ function RiskOverlay({ risk }) {
 // ── Main page ──────────────────────────────────────────────────────────────
 
 export default function Landing() {
-  const navigate = useNavigate();
-  const globeRef     = useRef(null);
-  const containerRef = useRef(null);
+  const navigate        = useNavigate();
+  const mapContainerRef = useRef(null);
+  const mapRef          = useRef(null);
+  const markerRef       = useRef(null);
 
   const [zip, setZip]                   = useState('');
   const [zipError, setZipError]         = useState('');
   const [selectedRisk, setSelectedRisk] = useState(null);
-  const [pinData, setPinData]           = useState([]);
-  const [globeDims, setGlobeDims]       = useState({ width: 0, height: 0 });
-  const [globeReady, setGlobeReady]     = useState(false);
 
-  // Measure container so Globe receives explicit pixel dimensions
+  // Initialise Mapbox — desktop only; container is display:none on mobile
   useEffect(() => {
-    function measure() {
-      if (!containerRef.current) return;
-      const r = containerRef.current.getBoundingClientRect();
-      setGlobeDims({ width: Math.round(r.width), height: Math.round(r.height) });
+    if (!mapContainerRef.current || window.innerWidth < 1024) return;
+
+    const token = import.meta.env.VITE_MAPBOX_TOKEN;
+    if (!token) {
+      console.warn('Canopy: add VITE_MAPBOX_TOKEN to your .env file to enable the map.');
+      return;
     }
-    measure();
-    const ro = new ResizeObserver(measure);
-    if (containerRef.current) ro.observe(containerRef.current);
-    return () => ro.disconnect();
-  }, []);
 
-  // Set initial camera once the globe has rendered
-  useEffect(() => {
-    if (!globeReady || !globeRef.current) return;
-    globeRef.current.pointOfView({ lat: 38, lng: -97, altitude: 2.2 }, 0);
-  }, [globeReady]);
+    mapboxgl.accessToken = token;
+
+    mapRef.current = new mapboxgl.Map({
+      container:        mapContainerRef.current,
+      style:            'mapbox://styles/mapbox/satellite-streets-v12',
+      projection:       'globe',
+      center:           [-97, 38],   // continental US
+      zoom:             2.5,
+      scrollZoom:       false,       // don't intercept page scroll
+      attributionControl: false,
+    });
+
+    mapRef.current.addControl(
+      new mapboxgl.AttributionControl({ compact: true }),
+      'bottom-left'
+    );
+
+    // Space atmosphere for globe projection
+    mapRef.current.on('style.load', () => {
+      mapRef.current.setFog({
+        'color':         'rgb(186, 210, 235)',
+        'high-color':    'rgb(36,  92,  223)',
+        'horizon-blend':  0.02,
+        'space-color':   'rgb(11,  11,  25)',
+        'star-intensity': 0.6,
+      });
+    });
+
+    return () => {
+      if (markerRef.current) markerRef.current.remove();
+      mapRef.current.remove();
+      mapRef.current = null;
+    };
+  }, []);
 
   function handleSubmit(e) {
     e.preventDefault();
@@ -173,13 +196,19 @@ export default function Landing() {
 
     setSelectedRisk(risk);
     setZipError('');
-    setPinData([{ lat: coords.lat, lng: coords.lng }]);
 
-    if (globeRef.current) {
-      globeRef.current.pointOfView(
-        { lat: coords.lat, lng: coords.lng, altitude: 1.4 },
-        1500
-      );
+    if (mapRef.current) {
+      if (markerRef.current) markerRef.current.remove();
+      markerRef.current = new mapboxgl.Marker({ color: '#6d8f4a' }) /* var(--color-leaf) */
+        .setLngLat([coords.lng, coords.lat])
+        .addTo(mapRef.current);
+
+      mapRef.current.flyTo({
+        center:   [coords.lng, coords.lat],
+        zoom:     9,
+        duration: 2000,
+        essential: true,
+      });
     }
   }
 
@@ -250,39 +279,15 @@ export default function Landing() {
           )}
         </div>
 
-        {/* Globe — desktop only ─────────────────────────────────── */}
-        <div
-          ref={containerRef}
-          className="hidden lg:flex absolute inset-y-0 right-0 w-[62%] items-center justify-end overflow-hidden"
-        >
-          {/* Gradient fade on left edge so globe blends into parchment */}
+        {/* Mapbox map — desktop only ────────────────────────────── */}
+        <div className="hidden lg:block absolute inset-y-0 right-0 w-[62%]">
+          <div ref={mapContainerRef} className="absolute inset-0" />
+
+          {/* Gradient fade on left edge so map blends into parchment */}
           <div
             className="absolute inset-y-0 left-0 w-32 pointer-events-none z-10"
             style={{ background: 'linear-gradient(to right, var(--color-parchment), transparent)' }}
           />
-
-          {globeDims.width > 0 && (
-            <Suspense fallback={null}>
-              <Globe
-                ref={globeRef}
-                width={globeDims.width}
-                height={globeDims.height}
-                globeImageUrl="https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg"
-                backgroundColor="rgba(0,0,0,0)"
-                atmosphereColor="rgba(100,180,255,0.45)"
-                atmosphereAltitude={0.28}
-                autoRotate
-                autoRotateSpeed={0.35}
-                pointsData={pinData}
-                pointLat="lat"
-                pointLng="lng"
-                pointRadius={0.55}
-                pointAltitude={0.03}
-                pointColor={() => '#6d8f4a'} /* var(--color-leaf) */
-                onGlobeReady={() => setGlobeReady(true)}
-              />
-            </Suspense>
-          )}
 
           {selectedRisk && <RiskOverlay risk={selectedRisk} />}
         </div>
