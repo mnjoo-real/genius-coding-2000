@@ -1,791 +1,841 @@
 # AGENT_GUIDE.md
 
-## Project Overview
+## 1. Project Overview
 
-DisasterDoc is a disaster recovery documentation web app that helps disaster survivors organize damage evidence, match possible aid programs, generate a recovery PDF package, and track application deadlines.
+This project is a React + Vite frontend MVP for a **location-based eco-disaster preparedness platform**.
 
-The product should feel like a guided recovery assistant, not a generic form website.
+The app helps users:
 
-DisasterDoc does not guarantee disaster aid. It organizes evidence, suggests possible aid programs, estimates potential aid ranges, and helps users prepare application materials.
+1. Enter a ZIP code or location.
+2. View regional disaster risks.
+3. Answer home vulnerability questions.
+4. Receive a **DisasterReady Score**.
+5. Get eco-friendly mitigation recommendations.
+6. Simulate how recommended actions improve the projected score.
 
-Always present AI results as assistive suggestions, not final decisions.
+The current MVP focuses on **preparedness**, not disaster recovery paperwork.
 
----
+Future recovery-related features may exist as secondary preview components, but the main user flow must stay centered on:
 
-## Core User Flow
-
-1. **Basic Information**
-   The user enters name, contact information, disaster type, country, address, residency/status, disaster date, housing status, and insurance status.
-
-2. **Photo Upload**
-   The user uploads damage photos. The system labels photos by damage type and extracts available metadata such as captured date and location.
-
-3. **AI Interview**
-   The system asks 5–7 recovery-related questions to collect missing context, such as housing condition, insurance, immediate needs, lost documents, and whether the user has already contacted agencies.
-
-4. **Aid Matching**
-   The system recommends possible disaster aid programs and shows an estimated aid range based on the user's basic information, uploaded evidence, and interview responses.
-
-5. **Package Review**
-   The system organizes the user's disaster case into a structured recovery package.
-
-6. **PDF Download**
-   The user can download a final DisasterDoc recovery package as a PDF.
-
-7. **Deadline Tracking**
-   The user can track important application deadlines and required submission tasks.
+```txt
+Landing
+→ LocationInput
+→ RiskOverview
+→ HomeQuestionnaire
+→ ScoreDashboard
+```
 
 ---
 
-## MVP Pages
+## 2. Core Product Concept
 
-Create only the following pages for the MVP:
+The app should feel like a practical, credible, eco-focused home resilience tool.
 
-* `Landing.jsx`
-* `Dashboard.jsx`
-* `NewCase.jsx`
-* `CaseDetail.jsx`
-* `Deadlines.jsx`
+Main terms to use:
 
-Do **not** create a Settings page for the MVP.
+* DisasterReady Score
+* Regional Risk
+* Home Vulnerability
+* Eco-Mitigation Actions
+* Projected Score
+* Home Readiness
+* Preparedness
 
-Do **not** add unnecessary pages unless explicitly instructed.
+Avoid making the product sound like only a document organizer.
 
----
+Avoid using old recovery-document language as the main product framing:
 
-## Tech Stack
+* case
+* incident case
+* aid match
+* claim package
+* deadline tracker
+* damage report
 
-Use the following stack:
-
-* React + Vite
-* Tailwind CSS
-* React Router
-* Mock data first
-* API integration later
-* Supabase integration later, only if needed
-* PDF generation later
-
-The first goal is to complete the full UI flow using mock data before connecting real AI, database, or PDF logic.
+These can appear only in the future recovery preview section if needed.
 
 ---
 
-## Team Responsibilities
+## 3. Current Folder Structure
 
-Minjoo is responsible for:
-
-* `src/components/**`
-* reusable UI components
-* component props structure
-* mock data structure in `src/data/**`
-
-Teammate is responsible for:
-
-* `src/pages/**`
-* `src/App.jsx`
-* routing
-* page layout
-* navigation flow
-* assembling components into pages
-
-Avoid editing each other's main files unless necessary.
-
-If a change affects both pages and components, keep the change minimal and preserve the component contract.
-
----
-
-## Folder Structure
-
-Use this structure:
+Follow this structure:
 
 ```txt
 src/
+├── App.jsx
+├── index.css
+├── main.jsx
+├── assets/
+│   ├── hero.png
+│   ├── react.svg
+│   └── vite.svg
 ├── pages/
 │   ├── Landing.jsx
-│   ├── Dashboard.jsx
-│   ├── NewCase.jsx
-│   ├── CaseDetail.jsx
-│   └── Deadlines.jsx
-│
+│   ├── Login.jsx
+│   ├── LocationInput.jsx
+│   ├── HomeQuestionnaire.jsx
+│   ├── RiskOverview.jsx
+│   └── ScoreDashboard.jsx
 ├── components/
 │   ├── layout/
 │   │   ├── Navbar.jsx
-│   │   ├── Sidebar.jsx
+│   │   ├── Footbar.jsx
 │   │   └── ProgressStepper.jsx
-│   │
-│   ├── ui/
-│   │   ├── Button.jsx
-│   │   ├── Card.jsx
-│   │   ├── Input.jsx
-│   │   ├── Select.jsx
-│   │   ├── Textarea.jsx
-│   │   └── Badge.jsx
-│   │
-│   ├── case/
-│   │   ├── CaseCard.jsx
-│   │   └── StatusBadge.jsx
-│   │
-│   ├── upload/
-│   │   ├── PhotoUploader.jsx
-│   │   ├── PhotoGrid.jsx
-│   │   └── PhotoCard.jsx
-│   │
-│   ├── interview/
-│   │   ├── InterviewChat.jsx
-│   │   └── ExtractedFactsPanel.jsx
-│   │
-│   ├── aid/
-│   │   ├── AidMatchCard.jsx
-│   │   └── DocumentChecklist.jsx
-│   │
-│   ├── report/
-│   │   ├── ReportPreview.jsx
-│   │   └── PdfDownloadButton.jsx
-│   │
-│   └── deadline/
-│       ├── DeadlineCard.jsx
-│       └── DeadlineList.jsx
-│
+│   ├── questionnaire/
+│   │   └── QuestionCard.jsx
+│   ├── recommendations/
+│   │   └── RecommendationCard.jsx
+│   ├── recovery/
+│   │   └── RecoveryPreviewCard.jsx
+│   ├── risk/
+│   │   ├── RiskCard.jsx
+│   │   └── RiskBarChart.jsx
+│   ├── score/
+│   │   ├── ScoreGauge.jsx
+│   │   └── WeaknessList.jsx
+│   ├── simulation/
+│   │   └── ScoreSimulationPanel.jsx
+│   └── ui/
+│       ├── Badge.jsx
+│       ├── Button.jsx
+│       ├── Card.jsx
+│       ├── Input.jsx
+│       ├── ProgressBar.jsx
+│       ├── Select.jsx
+│       └── Textarea.jsx
 ├── data/
-│   ├── mockCases.js
-│   ├── mockAidPrograms.js
-│   └── mockInterviewQuestions.js
-│
-└── App.jsx
+│   ├── ecoSolutions.js
+│   ├── homeQuestions.js
+│   └── regionalRiskData.js
+└── utils/
+    ├── calculateProjectedScore.js
+    ├── calculateScore.js
+    ├── generateRecommendations.js
+    ├── getRiskLevel.js
+    └── getTopRisks.js
 ```
+
+Do not create a new unrelated folder structure unless there is a strong reason.
 
 ---
 
-## Routing Structure
+## 4. Routing Rules
 
-Use this route structure:
+Use `react-router-dom`.
+
+Routes should be:
 
 ```txt
-/                 -> Landing
-/dashboard         -> Dashboard
-/new-case          -> NewCase
-/cases/:caseId     -> CaseDetail
-/deadlines         -> Deadlines
+/              → Landing
+/login         → Login
+/location      → LocationInput
+/risk          → RiskOverview
+/questionnaire → HomeQuestionnaire
+/dashboard     → ScoreDashboard
 ```
 
-Do not create routes for Settings, Profile, Login, or Admin unless explicitly instructed.
+`main.jsx` should remain close to the default Vite structure.
 
-A mock login state is acceptable if needed for navigation flow.
+`App.jsx` should only manage routing, not business logic.
 
 ---
 
-## New Case Flow
+## 5. State and Data Flow
 
-The `NewCase.jsx` page should behave like a guided wizard.
+This MVP should be frontend-only.
 
-Use this step order:
+Use `localStorage` for cross-page state.
+
+Store:
 
 ```txt
-Basic Info → Photos → Interview → Aid Match → Review → Download
+selectedZipCode
+regionalRisk
+homeProfile
 ```
 
-The user should always know where they are in the flow.
-
-Use `ProgressStepper` for the step indicator.
-
-The wizard should work with mock data first. Do not block UI implementation on real AI/API logic.
-
----
-
-## Component Contract
-
-Pages should use components according to the following props.
-
-Do not rename these props unless explicitly instructed.
-
----
-
-### CaseCard
-
-Usage:
-
-```jsx
-<CaseCard caseData={caseItem} onClick={handleClick} />
-```
-
-Expected data:
-
-```js
-{
-  id: "case-001",
-  title: "Hurricane Damage - Florida",
-  disasterType: "Hurricane",
-  location: "Miami, Florida",
-  disasterDate: "2026-09-18",
-  status: "Evidence Review",
-  photoCount: 12,
-  aidMatchCount: 3,
-  nextDeadline: "2026-10-17"
-}
-```
-
----
-
-### StatusBadge
-
-Usage:
-
-```jsx
-<StatusBadge status={caseData.status} />
-```
-
-Expected values:
-
-```js
-"Draft"
-"Evidence Review"
-"Interview Complete"
-"Aid Matched"
-"PDF Generated"
-"Submitted"
-```
-
----
-
-### PhotoUploader
-
-Usage:
-
-```jsx
-<PhotoUploader onUpload={handlePhotoUpload} />
-```
-
-Expected behavior:
-
-* Allow drag-and-drop or file selection.
-* For MVP, mock uploaded image previews are acceptable.
-* Do not require a real storage backend for the first version.
-
----
-
-### PhotoGrid
-
-Usage:
-
-```jsx
-<PhotoGrid photos={photos} onLabelChange={handleLabelChange} />
-```
-
-Expected data:
-
-```js
-[
-  {
-    id: "photo-001",
-    url: "/mock/flooded-room.jpg",
-    label: "Flood Damage",
-    confidence: 0.91,
-    capturedAt: "2026-09-19T14:30:00",
-    location: "Miami, Florida"
-  }
-]
-```
-
----
-
-### PhotoCard
-
-Usage:
-
-```jsx
-<PhotoCard photo={photoItem} onLabelChange={handleLabelChange} />
-```
-
-Expected data:
-
-```js
-{
-  id: "photo-001",
-  url: "/mock/flooded-room.jpg",
-  label: "Flood Damage",
-  confidence: 0.91,
-  capturedAt: "2026-09-19T14:30:00",
-  location: "Miami, Florida"
-}
-```
-
-Photo labels should be editable because AI classification may be wrong.
-
----
-
-### InterviewChat
-
-Usage:
-
-```jsx
-<InterviewChat
-  questions={mockInterviewQuestions}
-  answers={answers}
-  onAnswerSubmit={handleAnswerSubmit}
-/>
-```
-
-Expected behavior:
-
-* Ask 5–7 questions.
-* Show question progress.
-* Store answers in page state or mock state.
-* Do not require a real AI API for the first version.
-
----
-
-### ExtractedFactsPanel
-
-Usage:
-
-```jsx
-<ExtractedFactsPanel facts={facts} />
-```
-
-Expected data:
-
-```js
-[
-  "Home is currently unlivable",
-  "User is a renter",
-  "No flood insurance",
-  "Needs temporary housing",
-  "Lost personal documents"
-]
-```
-
----
-
-### AidMatchCard
-
-Usage:
-
-```jsx
-<AidMatchCard program={programItem} onAddToPackage={handleAddToPackage} />
-```
-
-Expected data:
-
-```js
-{
-  id: "aid-001",
-  name: "FEMA Individual Assistance",
-  agency: "FEMA",
-  matchLevel: "High",
-  estimatedAidRange: "$1,200 - $4,500",
-  reason: [
-    "Disaster type matches a declared hurricane event",
-    "Uploaded photos show interior flood damage",
-    "User reported temporary housing need"
-  ],
-  requiredDocuments: [
-    "Proof of identity",
-    "Proof of residence",
-    "Damage photos",
-    "Insurance status"
-  ],
-  deadline: "2026-10-17"
-}
-```
-
-Use careful aid language. Never imply guaranteed approval.
-
----
-
-### DocumentChecklist
-
-Usage:
-
-```jsx
-<DocumentChecklist documents={requiredDocuments} />
-```
-
-Expected data:
-
-```js
-[
-  "Proof of identity",
-  "Proof of residence",
-  "Damage photos",
-  "Insurance status"
-]
-```
-
----
-
-### DeadlineCard
-
-Usage:
-
-```jsx
-<DeadlineCard deadline={deadlineItem} onMarkSubmitted={handleMarkSubmitted} />
-```
-
-Expected data:
-
-```js
-{
-  id: "deadline-001",
-  title: "FEMA Individual Assistance Application",
-  agency: "FEMA",
-  dueDate: "2026-10-17",
-  status: "Not Submitted",
-  priority: "High",
-  requiredActions: [
-    "Review generated PDF",
-    "Attach proof of residence",
-    "Submit application online"
-  ]
-}
-```
-
----
-
-### DeadlineList
-
-Usage:
-
-```jsx
-<DeadlineList deadlines={deadlines} onMarkSubmitted={handleMarkSubmitted} />
-```
-
----
-
-### ProgressStepper
-
-Usage:
-
-```jsx
-<ProgressStepper
-  steps={["Basic Info", "Photos", "Interview", "Aid Match", "Review", "Download"]}
-  currentStep={2}
-/>
-```
-
-`currentStep` should be zero-based unless explicitly changed across the whole project.
-
----
-
-### ReportPreview
-
-Usage:
-
-```jsx
-<ReportPreview reportData={reportData} />
-```
-
-Expected data:
-
-```js
-{
-  applicantName: "Alex Kim",
-  disasterSummary: "The applicant experienced hurricane-related flooding at their residence.",
-  evidenceSummary: [
-    "Interior flood damage detected",
-    "Roof damage reported",
-    "Temporary housing needed"
-  ],
-  timeline: [
-    {
-      date: "2026-09-18",
-      event: "Hurricane impact reported"
-    },
-    {
-      date: "2026-09-19",
-      event: "Flood damage photos uploaded"
-    }
-  ],
-  aidMatches: [
-    "FEMA Individual Assistance",
-    "Red Cross Emergency Shelter"
-  ]
-}
-```
-
----
-
-### PdfDownloadButton
-
-Usage:
-
-```jsx
-<PdfDownloadButton reportData={reportData} />
-```
-
-For MVP, this can be a placeholder button until PDF generation is implemented.
-
----
-
-## Mock Data Rules
-
-Use mock data before real integrations.
-
-Create mock data in:
+Expected flow:
 
 ```txt
-src/data/mockCases.js
-src/data/mockAidPrograms.js
-src/data/mockInterviewQuestions.js
+LocationInput
+→ saves selectedZipCode and regionalRisk
+→ navigates to /risk
+
+RiskOverview
+→ reads regionalRisk
+→ displays risk profile
+→ navigates to /questionnaire
+
+HomeQuestionnaire
+→ saves homeProfile
+→ navigates to /dashboard
+
+ScoreDashboard
+→ reads regionalRisk and homeProfile
+→ calculates score, weaknesses, recommendations, and projected score
 ```
 
-Mock data should be realistic enough for a demo.
+The app must not crash if `localStorage` is empty.
 
-Use disaster-related examples such as:
-
-* hurricane damage
-* flood damage
-* wildfire damage
-* earthquake damage
-* storm damage
-
-Avoid unrealistic or joke data.
+If required data is missing, show a clear message and a button back to `/location`.
 
 ---
 
-## UI Guidelines
+## 6. Data Files
 
-The UI should feel:
+### `regionalRiskData.js`
 
-* calm
-* trustworthy
-* structured
-* professional
-* supportive but not overly emotional
-* clear enough for a stressed disaster survivor
+Should export:
+
+```js
+regionalRiskData
+fallbackRiskData
+```
+
+Use sample ZIP codes:
+
+```txt
+33101 → Miami, FL
+14623 → Rochester, NY
+90001 → Los Angeles, CA
+77001 → Houston, TX
+80202 → Denver, CO
+```
+
+Each regional risk profile should include:
+
+```js
+{
+  zipCode,
+  city,
+  state,
+  floodRisk,
+  wildfireRisk,
+  heatRisk,
+  stormRisk,
+  winterStormRisk
+}
+```
+
+Risk scores are from `0` to `100`.
+
+### `homeQuestions.js`
+
+Should export `homeQuestions`.
+
+Include 12 questions:
+
+Flood:
+
+* basement
+* water pooling
+* paved surface level
+* gutters maintained
+
+Wildfire:
+
+* dry vegetation near home
+* debris on roof/gutter
+
+Heat:
+
+* shade
+* overheats in summer
+
+Storm:
+
+* reinforced windows
+* large branches nearby
+
+Preparedness:
+
+* document backup
+* emergency plan
+
+Each question should include:
+
+```js
+{
+  id,
+  category,
+  question,
+  type
+}
+```
+
+Scale questions should include:
+
+```js
+options: ["Low", "Medium", "High"]
+```
+
+### `ecoSolutions.js`
+
+Should export `ecoSolutions`.
+
+Include actions such as:
+
+* rain garden
+* permeable pavement
+* downspout redirection
+* defensible space
+* native shade trees
+* cool roof coating
+* branch trimming
+* emergency plan
+
+Each solution should include:
+
+```js
+{
+  id,
+  title,
+  disasterType,
+  description,
+  ecoBenefit,
+  costLevel,
+  impactLevel,
+  scoreIncrease
+}
+```
+
+---
+
+## 7. Utility Function Rules
+
+### `getRiskLevel.js`
+
+Function:
+
+```js
+getRiskLevel(value)
+```
+
+Return:
+
+```txt
+High   → value >= 75
+Medium → value >= 45
+Low    → otherwise
+```
+
+### `getTopRisks.js`
+
+Function:
+
+```js
+getTopRisks(regionalRisk)
+```
+
+Return the top 3 risks from:
+
+```txt
+Flood
+Wildfire
+Heat Wave
+Storm
+Winter Storm
+```
+
+Sort descending by score.
+
+### `calculateScore.js`
+
+Function:
+
+```js
+calculateScore(regionalRisk, homeProfile)
+```
+
+Return:
+
+```js
+{
+  totalScore,
+  weaknesses
+}
+```
+
+Rules:
+
+* Start from 100.
+* Subtract regional exposure penalty based on average regional risk.
+* Subtract penalties for home vulnerabilities.
+* Clamp score between 0 and 100.
+* Return readable weakness strings.
+
+The score is a **rule-based readiness estimate**, not an official engineering or FEMA-certified assessment.
+
+### `generateRecommendations.js`
+
+Function:
+
+```js
+generateRecommendations(regionalRisk, homeProfile)
+```
+
+Return relevant eco-mitigation actions based on user vulnerabilities.
+
+Examples:
+
+```txt
+water pooling → rain garden
+high paved surface → permeable pavement
+unmaintained gutters → downspout redirection
+dry vegetation / roof debris → defensible space
+no shade → native shade trees
+overheating → cool roof
+large branches → branch trimming
+no emergency plan → emergency plan
+```
+
+### `calculateProjectedScore.js`
+
+Function:
+
+```js
+calculateProjectedScore(currentScore, selectedRecommendations)
+```
+
+Add selected recommendations’ `scoreIncrease` values.
+
+Cap at `100`.
+
+---
+
+## 8. Component Responsibilities
+
+### `components/ui/`
+
+Reusable visual primitives only.
+
+Do not put business logic here.
+
+Components:
+
+* Button
+* Card
+* Input
+* Select
+* Textarea
+* Badge
+* ProgressBar
+
+Each component should:
+
+* Export a default React component.
+* Accept `className`.
+* Spread remaining props.
+* Use Tailwind classes.
+* Follow the design system defined in `index.css`.
+
+### `components/layout/`
+
+Shared layout components.
+
+* `Navbar.jsx`: app name, route links.
+* `Footbar.jsx`: small disclaimer.
+* `ProgressStepper.jsx`: shows current assessment step.
+
+Steps:
+
+```txt
+Location
+Risk
+Home Check
+Score
+```
+
+### `components/risk/`
+
+Regional risk visualization.
+
+* `RiskCard.jsx`: one risk item.
+* `RiskBarChart.jsx`: all disaster risks as horizontal bars.
+
+Do not require external chart libraries unless already installed. Tailwind bars are preferred for stability.
+
+### `components/questionnaire/`
+
+Home vulnerability input.
+
+* `QuestionCard.jsx`: supports boolean and scale questions.
+
+Boolean questions should show Yes/No options.
+
+Scale questions should show Low/Medium/High options.
+
+### `components/score/`
+
+Score display.
+
+* `ScoreGauge.jsx`: large score card.
+* `WeaknessList.jsx`: list of detected vulnerabilities.
+
+### `components/recommendations/`
+
+Eco-action recommendation cards.
+
+* `RecommendationCard.jsx`: title, disaster type, description, eco benefit, cost, impact, score increase, selected state.
+
+### `components/simulation/`
+
+Projected score simulation.
+
+* `ScoreSimulationPanel.jsx`: current score, projected score, improvement amount, selected action list.
+
+### `components/recovery/`
+
+Secondary/future feature preview only.
+
+* `RecoveryPreviewCard.jsx`: briefly explains future recovery document support.
+
+Do not make recovery the main product experience in the MVP.
+
+---
+
+## 9. Page Responsibilities
+
+### `Landing.jsx`
+
+Purpose:
+
+* Explain the product.
+* Send users to `/location`.
+
+Must include:
+
+* Strong hero headline.
+* Short subheadline.
+* CTA button: “Check My Home”.
+* Three feature cards:
+
+  1. Regional Risk
+  2. Home Vulnerability
+  3. Eco-Mitigation Actions
+
+### `LocationInput.jsx`
+
+Purpose:
+
+* ZIP code input.
+* Select matching regional risk profile.
+* Save to `localStorage`.
+
+Must include sample ZIP chips:
+
+```txt
+33101 Miami
+14623 Rochester
+90001 Los Angeles
+77001 Houston
+80202 Denver
+```
+
+If unknown ZIP:
+
+* Use `fallbackRiskData`.
+* Preserve the entered ZIP code.
+
+### `RiskOverview.jsx`
+
+Purpose:
+
+* Show regional disaster risks.
+* Show top 3 risks.
+* Continue to questionnaire.
+
+If regional data is missing:
+
+* Show fallback message.
+* Button back to `/location`.
+
+### `HomeQuestionnaire.jsx`
+
+Purpose:
+
+* Render all questions.
+* Save answers to `localStorage`.
+
+Requirements:
+
+* Require all questions before continuing.
+* Show progress count, such as `8 of 12 answered`.
+* Navigate to `/dashboard` after saving.
+
+### `ScoreDashboard.jsx`
+
+Purpose:
+
+* Show final result.
+
+Must include:
+
+* DisasterReady Score.
+* Top regional risks.
+* Weakness list.
+* Eco-mitigation recommendations.
+* Projected score simulation.
+* Recovery preview card.
+* Restart button that clears assessment-related localStorage.
+
+---
+
+## 10. Design Rules
+
+The project must follow the visual system already defined in `src/index.css`.
+
+Before editing UI, agents should inspect `index.css` and reuse its design rules.
+
+Do not introduce a conflicting design system.
+
+Important design constraints:
+
+* Use the existing Tailwind setup.
+* Follow the color palette and global styles from `index.css`.
+* Prefer the existing visual tone over generic template styles.
+* Keep UI consistent across all pages.
+* Use rounded cards, soft borders, readable spacing, and restrained shadows.
+* Keep the app clean, modern, eco-tech, and credible.
+* Avoid random new colors that conflict with `index.css`.
+* Avoid mixing unrelated themes like purple Vite demo styling, dark cyberpunk styling, or overly playful UI.
+
+Recommended visual direction:
+
+```txt
+Background: light, clean, subtle gradients if already supported
+Cards: white or near-white
+Text: slate / neutral tones
+Accent: emerald, green, teal, or existing project accent from index.css
+Borders: subtle
+Buttons: clear primary/secondary hierarchy
+```
+
+If `index.css` defines custom classes, CSS variables, typography rules, gradients, button styles, or layout patterns, reuse them rather than replacing them.
+
+Do not overwrite `index.css` unless explicitly instructed.
+
+---
+
+## 11. Coding Style
+
+Use:
+
+* React functional components.
+* JavaScript, not TypeScript.
+* Tailwind CSS classes.
+* Named exports for data and utility functions.
+* Default exports for React components.
 
 Avoid:
 
-* playful colors
-* exaggerated AI claims
-* overly casual language
-* guaranteed aid language
-* cluttered layouts
-* aggressive animations
-* confusing technical jargon
+* Backend code.
+* Supabase/Firebase/Auth logic unless explicitly requested.
+* Complex global state libraries.
+* Unnecessary dependencies.
+* Over-engineered abstractions.
+* Long hardcoded logic inside page components.
 
-Use careful wording for aid prediction.
+Keep business logic in `utils/`.
 
-Preferred wording:
+Keep static content/data in `data/`.
 
-* "Estimated Aid Range"
-* "Potential Match"
-* "Required Documents"
-* "Not guaranteed"
-* "Based on provided information"
-* "Suggested next steps"
-* "Possible aid program"
-
-Avoid wording like:
-
-* "You will receive"
-* "Guaranteed aid"
-* "Approved amount"
-* "Confirmed eligibility"
-* "Definitely qualified"
+Keep visual primitives in `components/ui/`.
 
 ---
 
-## Design System Rule
+## 12. Dependency Rules
 
-The global design system is defined in `src/index.css`.
-
-All pages and components must follow the colors, typography, spacing, border radius, shadows, transitions, and utility classes defined in `src/index.css`.
-
-Do not introduce conflicting colors, font sizes, shadows, spacing systems, border radius values, or custom visual styles unless explicitly instructed.
-
-When styling a component, first check whether an existing class, CSS variable, or reusable style pattern already exists in `src/index.css`.
-
-`src/index.css` is the single source of truth for DisasterDoc's visual design.
-
-Do not create separate competing design systems inside individual components.
-
-Do not hard-code random colors if a design token or existing utility class is already available in `src/index.css`.
-
----
-
-## Styling Rules
-
-Use Tailwind CSS for component styling.
-
-Prefer reusable classes and patterns from `src/index.css`.
-
-Use responsive layouts by default.
-
-Cards should use consistent padding, rounded corners, border style, and shadow style.
-
-Buttons should use the shared button patterns.
-
-Inputs should use the shared form field patterns.
-
-Badges should use consistent status colors and typography.
-
-Avoid inline styles unless absolutely necessary.
-
-Avoid creating large custom CSS files for individual components.
-
----
-
-## Development Rules
-
-1. Build with mock data first.
-2. Do not connect real AI or Supabase until the full UI flow works.
-3. Components should not contain page-level routing logic.
-4. Pages should assemble components and handle navigation.
-5. Keep component props simple and predictable.
-6. Avoid creating unnecessary pages.
-7. Avoid creating duplicate components.
-8. Use Tailwind CSS for styling.
-9. Use PascalCase for component file names.
-10. Keep the MVP focused on the disaster documentation flow.
-11. Preserve the component contract unless explicitly instructed.
-12. Do not create a Settings page.
-13. Do not create unrelated features.
-14. Do not use guaranteed aid language.
-15. Treat AI outputs as suggestions, not official decisions.
-16. Follow `src/index.css` for visual design.
-
----
-
-## File Naming Rules
-
-Use PascalCase for React components:
+Required:
 
 ```txt
-CaseCard.jsx
-AidMatchCard.jsx
-DeadlineCard.jsx
-ProgressStepper.jsx
+react-router-dom
 ```
 
-Do not use:
+Optional:
 
 ```txt
-casecard.jsx
-aid-match-card.jsx
-deadline_card.jsx
+lucide-react
+recharts
 ```
 
-Use camelCase for mock data files:
+Do not add new dependencies without checking whether the feature can be implemented with plain React and Tailwind first.
+
+For MVP stability, prefer simple Tailwind horizontal bars over complex chart libraries.
+
+---
+
+## 13. Error Handling Rules
+
+The app should not crash when:
+
+* localStorage is empty.
+* unknown ZIP code is entered.
+* a regional risk object is missing.
+* a home profile is missing.
+* no recommendations are generated.
+* weaknesses array is empty.
+
+Use graceful fallback messages and clear navigation buttons.
+
+Examples:
 
 ```txt
-mockCases.js
-mockAidPrograms.js
-mockInterviewQuestions.js
+We need your location first.
+Go to Location Input
 ```
-
----
-
-## Import Rules
-
-Use consistent import paths.
-
-If alias imports are configured, prefer:
-
-```jsx
-import CaseCard from "@/components/case/CaseCard";
-import DeadlineCard from "@/components/deadline/DeadlineCard";
-import Button from "@/components/ui/Button";
-```
-
-If alias imports are not configured, use relative imports consistently:
-
-```jsx
-import CaseCard from "../components/case/CaseCard";
-import DeadlineCard from "../components/deadline/DeadlineCard";
-import Button from "../components/ui/Button";
-```
-
-Do not mix import styles unnecessarily.
-
----
-
-## Accessibility Rules
-
-Use semantic HTML where possible.
-
-Buttons should be actual `<button>` elements unless navigation requires a link.
-
-Inputs should have labels.
-
-Images should have meaningful `alt` text.
-
-Do not rely only on color to communicate status.
-
-Keep text readable and contrast high.
-
----
-
-## MVP Priority
-
-Highest priority:
-
-1. Dashboard
-2. New Case wizard
-3. Photo upload and evidence labeling UI
-4. AI interview UI
-5. Aid matching UI
-6. Report preview
-7. PDF download button placeholder
-8. Deadline tracking
-
-Lower priority:
-
-1. Login
-2. Real notifications
-3. User settings
-4. Full calendar view
-5. Real agency submission links
-6. Real payment or aid processing
-7. Real AI classification
-8. Real PDF generation
-
----
-
-## Collaboration Rules
-
-Work in separate branches when possible.
-
-Recommended branches:
 
 ```txt
-feature/components-ui
-feature/pages-flow
+No major vulnerabilities detected from your answers.
 ```
-
-Minimize merge conflicts by keeping responsibility boundaries clear.
-
-Components owner should avoid editing page layout unless necessary.
-
-Pages owner should avoid changing component internals unless necessary.
-
-If a prop must change, update this guide or clearly notify the other teammate.
-
----
-
-## Recommended Agent Prompt
-
-Before asking an AI coding agent to modify the project, use this instruction:
 
 ```txt
-Read AGENT_GUIDE.md first and follow the project structure, component contract, and MVP scope exactly. Also, always follow the global design system and styling rules defined in src/index.css. Do not introduce conflicting styles, colors, spacing, shadows, or typography unless explicitly instructed.
+No recommended actions found for this profile yet.
 ```
 
 ---
 
-## Final Product Constraint
+## 14. LocalStorage Keys
 
-DisasterDoc is an assistive recovery documentation tool.
+Use these exact keys:
 
-It should help users:
+```txt
+selectedZipCode
+regionalRisk
+homeProfile
+```
 
-* organize disaster evidence
-* understand possible aid options
-* prepare a structured recovery package
-* track deadlines
+When restarting the assessment, remove these keys.
 
-It should not claim to:
+Do not clear the entire browser localStorage unless explicitly requested.
 
-* guarantee aid
-* replace official agencies
-* make legal decisions
-* make final eligibility decisions
-* submit applications automatically unless explicitly implemented later
+---
+
+## 15. MVP Scope Boundaries
+
+Build now:
+
+* Routing
+* ZIP input
+* Regional risk display
+* Questionnaire
+* Score calculation
+* Recommendations
+* Projected score simulation
+* Recovery preview card
+
+Do not build yet:
+
+* User accounts
+* Database persistence
+* File uploads
+* FEMA form generation
+* PDF export
+* Insurance document vault
+* Real API integration
+* Map-based property analysis
+* Satellite image analysis
+
+These are future extensions.
+
+---
+
+## 16. Presentation/Scientific Disclaimer
+
+Where appropriate, include a small disclaimer:
+
+```txt
+DisasterReady Score is a rule-based educational estimate, not an official engineering inspection, insurance assessment, or government determination.
+```
+
+Use this especially on the dashboard or footer.
+
+---
+
+## 17. Collaboration Rules for Agents
+
+When making changes:
+
+1. Check the existing file before editing.
+2. Do not overwrite unrelated work.
+3. Keep imports accurate.
+4. Keep component names consistent with file names.
+5. Run or mentally verify route flow after changes.
+6. Avoid changing folder structure unless requested.
+7. Follow `index.css` design rules.
+8. Keep the main MVP flow clean and working before adding polish.
+
+If a file is empty, create a minimal working version first.
+
+If a file already has code, modify it carefully rather than replacing it blindly.
+
+---
+
+## 18. First Implementation Priority
+
+The correct build order is:
+
+```txt
+1. App.jsx routing
+2. Placeholder pages
+3. data files
+4. utils functions
+5. ui components
+6. layout components
+7. risk components
+8. questionnaire component
+9. score components
+10. recommendation/simulation components
+11. Landing page
+12. LocationInput page
+13. RiskOverview page
+14. HomeQuestionnaire page
+15. ScoreDashboard page
+16. Full route test
+```
+
+Do not start with advanced styling before the end-to-end flow works.
+
+---
+
+## 19. Final Manual Test Checklist
+
+Before considering the frontend done, test:
+
+```txt
+[ ] / renders Landing
+[ ] /location renders ZIP input
+[ ] sample ZIP 33101 loads Miami risk profile
+[ ] sample ZIP 14623 loads Rochester risk profile
+[ ] unknown ZIP uses fallback profile
+[ ] /risk shows regional risks
+[ ] /questionnaire shows all 12 questions
+[ ] unanswered questions block submit
+[ ] answers save to localStorage
+[ ] /dashboard shows score
+[ ] weaknesses render correctly
+[ ] recommendations render correctly
+[ ] selecting recommendations changes projected score
+[ ] restart clears selectedZipCode, regionalRisk, and homeProfile
+[ ] app does not crash when localStorage is empty
+[ ] design follows index.css
+```
+
+---
+
+## 20. Summary
+
+This is a frontend-only MVP for a location-based eco-disaster preparedness app.
+
+The highest priority is a complete and stable user flow:
+
+```txt
+ZIP code
+→ regional disaster risk
+→ home vulnerability questionnaire
+→ DisasterReady Score
+→ eco-friendly action recommendations
+→ projected score improvement
+```
+
+Keep the implementation simple, credible, and consistent with the existing design system in `index.css`.
