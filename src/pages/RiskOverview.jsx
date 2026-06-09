@@ -1,5 +1,13 @@
 import { Link } from "react-router-dom";
 
+const riskCategoryFields = [
+  { label: "Flood", field: "floodRisk" },
+  { label: "Wildfire", field: "wildfireRisk" },
+  { label: "Heat Wave", field: "heatRisk" },
+  { label: "Storm", field: "stormRisk" },
+  { label: "Winter Storm", field: "winterStormRisk" },
+];
+
 function readRegionalRisk() {
   if (typeof window === "undefined") {
     return null;
@@ -34,13 +42,29 @@ function readRegionalRisk() {
   }
 }
 
+function getRegionValue(value, fallback) {
+  return typeof value === "string" && value.trim() ? value : fallback;
+}
+
+function getRiskScore(value) {
+  return typeof value === "number" && Number.isFinite(value) ? value : 0;
+}
+
 export default function RiskOverview() {
   const regionalRisk = readRegionalRisk();
-  const regionLabel = regionalRisk
-    ? [regionalRisk.city, regionalRisk.state].filter(Boolean).join(", ") ||
-      regionalRisk.zipCode ||
-      "Selected region"
+  const regionSummary = regionalRisk
+    ? {
+        city: getRegionValue(regionalRisk.city, "City unavailable"),
+        state: getRegionValue(regionalRisk.state, "State unavailable"),
+        zipCode: getRegionValue(regionalRisk.zipCode, "ZIP unavailable"),
+      }
     : null;
+  const riskCategories = regionalRisk
+    ? riskCategoryFields.map((riskCategory) => ({
+        ...riskCategory,
+        score: getRiskScore(regionalRisk[riskCategory.field]),
+      }))
+    : [];
 
   return (
     <main className="min-h-screen bg-parchment px-6 py-12 sm:py-16">
@@ -78,7 +102,29 @@ export default function RiskOverview() {
               <p className="text-sm font-medium uppercase tracking-[0.2em] text-leaf">
                 Region Summary
               </p>
-              <h2 className="mt-3 text-2xl">{regionLabel}</h2>
+              <h2 className="mt-3 text-2xl">
+                {regionSummary.city}, {regionSummary.state}
+              </h2>
+              <dl className="mt-5 grid gap-4 sm:grid-cols-3">
+                <div className="rounded-xl border border-stone-200 bg-parchment/60 p-4">
+                  <dt className="text-sm font-medium text-stone-500">City</dt>
+                  <dd className="mt-1 text-lg font-medium text-stone-900">
+                    {regionSummary.city}
+                  </dd>
+                </div>
+                <div className="rounded-xl border border-stone-200 bg-parchment/60 p-4">
+                  <dt className="text-sm font-medium text-stone-500">State</dt>
+                  <dd className="mt-1 text-lg font-medium text-stone-900">
+                    {regionSummary.state}
+                  </dd>
+                </div>
+                <div className="rounded-xl border border-stone-200 bg-parchment/60 p-4">
+                  <dt className="text-sm font-medium text-stone-500">ZIP code</dt>
+                  <dd className="mt-1 text-lg font-medium text-stone-900">
+                    {regionSummary.zipCode}
+                  </dd>
+                </div>
+              </dl>
               <p className="mt-3 text-stone-600">
                 This area profile is loaded from your saved location. Detailed
                 regional context will be added here next.
@@ -106,6 +152,21 @@ export default function RiskOverview() {
                   Risk cards and a chart will summarize flood, wildfire, heat,
                   storm, and winter storm exposure here.
                 </p>
+                <div className="mt-5 grid gap-3">
+                  {riskCategories.map((riskCategory) => (
+                    <div
+                      key={riskCategory.field}
+                      className="flex items-center justify-between rounded-xl border border-stone-200 bg-parchment/60 px-4 py-3"
+                    >
+                      <span className="font-medium text-stone-800">
+                        {riskCategory.label}
+                      </span>
+                      <span className="text-sm font-medium text-forest">
+                        {riskCategory.score}/100
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </section>
 
