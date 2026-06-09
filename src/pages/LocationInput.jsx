@@ -1,21 +1,18 @@
 import { useState } from "react";
 import Button from "../components/ui/Button";
 import Input from "../components/ui/Input";
-
-const sampleZipCodes = [
-  { zipCode: "33101", city: "Miami" },
-  { zipCode: "14623", city: "Rochester" },
-  { zipCode: "90001", city: "Los Angeles" },
-  { zipCode: "77001", city: "Houston" },
-  { zipCode: "80202", city: "Denver" },
-];
+import { fallbackRiskData, regionalRiskData } from "../data/regionalRiskData";
 
 export default function LocationInput() {
   const [zipCode, setZipCode] = useState("");
   const [error, setError] = useState("");
+  const [resolvedRiskProfile, setResolvedRiskProfile] = useState(null);
+  const [statusMessage, setStatusMessage] = useState("");
 
   function handleZipChange(event) {
     setZipCode(event.target.value);
+    setResolvedRiskProfile(null);
+    setStatusMessage("");
 
     if (error) {
       setError("");
@@ -24,6 +21,8 @@ export default function LocationInput() {
 
   function handleSampleZipClick(sampleZipCode) {
     setZipCode(sampleZipCode);
+    setResolvedRiskProfile(null);
+    setStatusMessage("");
 
     if (error) {
       setError("");
@@ -37,7 +36,25 @@ export default function LocationInput() {
 
     if (!submittedZipCode) {
       setError("Enter a ZIP code to check regional risk.");
+      setResolvedRiskProfile(null);
+      setStatusMessage("");
+      return;
     }
+
+    const matchingRiskProfile = regionalRiskData.find(
+      (regionalRiskProfile) => regionalRiskProfile.zipCode === submittedZipCode
+    );
+
+    if (matchingRiskProfile) {
+      setResolvedRiskProfile(matchingRiskProfile);
+      setStatusMessage(
+        `Sample region found: ${matchingRiskProfile.city}, ${matchingRiskProfile.state}.`
+      );
+      return;
+    }
+
+    setResolvedRiskProfile(fallbackRiskData);
+    setStatusMessage("No sample region found. Fallback risk data will be used.");
   }
 
   return (
@@ -69,7 +86,7 @@ export default function LocationInput() {
               Use a sample ZIP below to test the MVP regional risk flow.
             </p>
             <div className="mt-3 flex flex-wrap gap-3">
-              {sampleZipCodes.map((sample) => {
+              {regionalRiskData.map((sample) => {
                 const isSelected = zipCode === sample.zipCode;
 
                 return (
@@ -91,6 +108,12 @@ export default function LocationInput() {
               })}
             </div>
           </div>
+
+          {statusMessage && resolvedRiskProfile ? (
+            <p className="text-sm font-medium text-forest" role="status">
+              {statusMessage}
+            </p>
+          ) : null}
 
           <Button type="submit" size="lg">
             Continue
