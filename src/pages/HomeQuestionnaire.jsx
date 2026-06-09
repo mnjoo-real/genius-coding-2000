@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Navbar from '../components/layout/Navbar';
 import ProgressStepper from '../components/layout/ProgressStepper';
 import QuestionCard from '../components/questionnaire/QuestionCard';
 import Button from '../components/ui/Button';
@@ -39,9 +38,6 @@ export default function HomeQuestionnaire() {
   }
 
   return (
-    <>
-      <Navbar />
-
       <main className="min-h-screen bg-parchment pb-20">
         <div className="mx-auto max-w-3xl px-4 pt-10">
 
@@ -93,6 +89,5 @@ export default function HomeQuestionnaire() {
 
         </div>
       </main>
-    </>
   );
 }
