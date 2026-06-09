@@ -75,6 +75,14 @@ function getRegionValue(value, fallback) {
   return typeof value === "string" && value.trim() ? value : fallback;
 }
 
+function getDisplayValue(value, fallback) {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return String(value);
+  }
+
+  return getRegionValue(value, fallback);
+}
+
 function getRiskScore(value) {
   return typeof value === "number" && Number.isFinite(value) ? value : 0;
 }
@@ -86,6 +94,19 @@ export default function RiskOverview() {
         city: getRegionValue(regionalRisk.city, "City unavailable"),
         state: getRegionValue(regionalRisk.state, "State unavailable"),
         zipCode: getRegionValue(regionalRisk.zipCode, "ZIP unavailable"),
+        stateCode: getRegionValue(
+          regionalRisk.stateCode,
+          "State code unavailable"
+        ),
+        latitude: getDisplayValue(
+          regionalRisk.latitude,
+          "Latitude unavailable"
+        ),
+        longitude: getDisplayValue(
+          regionalRisk.longitude,
+          "Longitude unavailable"
+        ),
+        zipLookupSource: getRegionValue(regionalRisk.zipLookupSource, ""),
       }
     : null;
   const riskCategories = regionalRisk
@@ -164,7 +185,36 @@ export default function RiskOverview() {
                     {regionSummary.zipCode}
                   </dd>
                 </div>
+                <div className="rounded-xl border border-stone-200 bg-parchment/60 p-4">
+                  <dt className="text-sm font-medium text-stone-500">
+                    State code
+                  </dt>
+                  <dd className="mt-1 text-lg font-medium text-stone-900">
+                    {regionSummary.stateCode}
+                  </dd>
+                </div>
+                <div className="rounded-xl border border-stone-200 bg-parchment/60 p-4">
+                  <dt className="text-sm font-medium text-stone-500">
+                    Latitude
+                  </dt>
+                  <dd className="mt-1 text-lg font-medium text-stone-900">
+                    {regionSummary.latitude}
+                  </dd>
+                </div>
+                <div className="rounded-xl border border-stone-200 bg-parchment/60 p-4">
+                  <dt className="text-sm font-medium text-stone-500">
+                    Longitude
+                  </dt>
+                  <dd className="mt-1 text-lg font-medium text-stone-900">
+                    {regionSummary.longitude}
+                  </dd>
+                </div>
               </dl>
+              {regionSummary.zipLookupSource ? (
+                <p className="mt-3 text-sm text-stone-500">
+                  Location details verified by {regionSummary.zipLookupSource}.
+                </p>
+              ) : null}
               <p className="mt-3 text-stone-600">
                 This area profile is loaded from your saved location. Detailed
                 regional context will be added here next.
