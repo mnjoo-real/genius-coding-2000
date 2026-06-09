@@ -4,7 +4,7 @@ import { Link, useLocation } from 'react-router-dom';
 const navLinks = [
   { label: 'Home',      to: '/' },
   { label: 'My Score',  to: '/dashboard' },
-  { label: 'Recovery',  to: '/dashboard' },
+  { label: 'Recovery',  to: '/recovery' },
 ];
 
 function NavLink({ label, to, active, onClick }) {
@@ -28,7 +28,7 @@ export default function Navbar() {
   const { pathname } = useLocation();
   const [open, setOpen] = useState(false);
 
-  const isActive = (to) => (to === '/' ? pathname === '/' : pathname.startsWith(to));
+  const isActive = (to) => pathname === to;
 
   return (
     <nav className="sticky top-0 z-50 bg-parchment border-b border-stone-200">
