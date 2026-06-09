@@ -3,6 +3,11 @@ import Button from "../components/ui/Button";
 import Input from "../components/ui/Input";
 import { fallbackRiskData, regionalRiskData } from "../data/regionalRiskData";
 
+function saveResolvedLocation(submittedZipCode, regionalRiskProfile) {
+  localStorage.setItem("selectedZipCode", submittedZipCode);
+  localStorage.setItem("regionalRisk", JSON.stringify(regionalRiskProfile));
+}
+
 export default function LocationInput() {
   const [zipCode, setZipCode] = useState("");
   const [error, setError] = useState("");
@@ -46,6 +51,7 @@ export default function LocationInput() {
     );
 
     if (matchingRiskProfile) {
+      saveResolvedLocation(submittedZipCode, matchingRiskProfile);
       setResolvedRiskProfile(matchingRiskProfile);
       setStatusMessage(
         `Sample region found: ${matchingRiskProfile.city}, ${matchingRiskProfile.state}.`
@@ -53,7 +59,13 @@ export default function LocationInput() {
       return;
     }
 
-    setResolvedRiskProfile(fallbackRiskData);
+    const fallbackRiskProfile = {
+      ...fallbackRiskData,
+      zipCode: submittedZipCode,
+    };
+
+    saveResolvedLocation(submittedZipCode, fallbackRiskProfile);
+    setResolvedRiskProfile(fallbackRiskProfile);
     setStatusMessage("No sample region found. Fallback risk data will be used.");
   }
 
