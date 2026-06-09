@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Navbar from '../components/layout/Navbar';
 import Button from '../components/ui/Button';
 import ScoreGauge from '../components/score/ScoreGauge';
 import WeaknessList from '../components/score/WeaknessList';
@@ -151,24 +150,21 @@ export default function ScoreDashboard() {
 
   if (!homeProfile || !regionalRisk) {
     return (
-      <>
-        <Navbar />
-        <main className="min-h-screen bg-parchment px-6 py-16">
-          <div className="mx-auto max-w-5xl flex flex-col items-center text-center py-16">
-            <h2 className="text-2xl">No data found</h2>
-            <p className="mt-3 text-stone-500">
-              Please complete the location and home assessment steps first.
-            </p>
-            <Button
-              variant="primary"
-              className="mt-6"
-              onClick={() => navigate('/location')}
-            >
-              Start Over
-            </Button>
-          </div>
-        </main>
-      </>
+      <main className="min-h-screen bg-parchment px-6 py-16">
+        <div className="mx-auto max-w-5xl flex flex-col items-center text-center py-16">
+          <h2 className="text-2xl">No data found</h2>
+          <p className="mt-3 text-stone-500">
+            Please complete the location and home assessment steps first.
+          </p>
+          <Button
+            variant="primary"
+            className="mt-6"
+            onClick={() => navigate('/location')}
+          >
+            Start Over
+          </Button>
+        </div>
+      </main>
     );
   }
 
@@ -193,9 +189,7 @@ export default function ScoreDashboard() {
     : [];
 
   return (
-    <>
-      <Navbar />
-      <main className="min-h-screen bg-parchment px-6 py-16">
+    <main className="min-h-screen bg-parchment px-6 py-16">
         <div className="mx-auto max-w-5xl">
           <h1 className="text-3xl">Your DisasterReady Score</h1>
           <p className="mt-2 text-stone-500">Based on your location and home assessment.</p>
@@ -314,6 +308,5 @@ export default function ScoreDashboard() {
           </div>
         </div>
       </main>
-    </>
   );
 }
