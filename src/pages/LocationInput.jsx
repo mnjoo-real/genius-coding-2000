@@ -2,12 +2,28 @@ import { useState } from "react";
 import Button from "../components/ui/Button";
 import Input from "../components/ui/Input";
 
+const sampleZipCodes = [
+  { zipCode: "33101", city: "Miami" },
+  { zipCode: "14623", city: "Rochester" },
+  { zipCode: "90001", city: "Los Angeles" },
+  { zipCode: "77001", city: "Houston" },
+  { zipCode: "80202", city: "Denver" },
+];
+
 export default function LocationInput() {
   const [zipCode, setZipCode] = useState("");
   const [error, setError] = useState("");
 
   function handleZipChange(event) {
     setZipCode(event.target.value);
+
+    if (error) {
+      setError("");
+    }
+  }
+
+  function handleSampleZipClick(sampleZipCode) {
+    setZipCode(sampleZipCode);
 
     if (error) {
       setError("");
@@ -47,6 +63,34 @@ export default function LocationInput() {
             error={error}
             aria-required="true"
           />
+
+          <div>
+            <p className="text-sm text-stone-600">
+              Use a sample ZIP below to test the MVP regional risk flow.
+            </p>
+            <div className="mt-3 flex flex-wrap gap-3">
+              {sampleZipCodes.map((sample) => {
+                const isSelected = zipCode === sample.zipCode;
+
+                return (
+                  <button
+                    key={sample.zipCode}
+                    type="button"
+                    onClick={() => handleSampleZipClick(sample.zipCode)}
+                    aria-pressed={isSelected}
+                    className={[
+                      "rounded-full border px-4 py-2 text-sm font-medium transition-base",
+                      isSelected
+                        ? "border-forest bg-moss text-forest shadow-sm"
+                        : "border-stone-200 bg-white text-stone-700 hover:border-leaf hover:bg-moss/40 hover:text-forest",
+                    ].join(" ")}
+                  >
+                    {sample.zipCode} {sample.city}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
           <Button type="submit" size="lg">
             Continue
