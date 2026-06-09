@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom";
+
 function readRegionalRisk() {
   if (typeof window === "undefined") {
     return null;
@@ -16,7 +18,17 @@ function readRegionalRisk() {
   }
 
   try {
-    return JSON.parse(storedRegionalRisk);
+    const parsedRegionalRisk = JSON.parse(storedRegionalRisk);
+
+    if (
+      !parsedRegionalRisk ||
+      typeof parsedRegionalRisk !== "object" ||
+      Array.isArray(parsedRegionalRisk)
+    ) {
+      return null;
+    }
+
+    return parsedRegionalRisk;
   } catch {
     return null;
   }
@@ -52,12 +64,12 @@ export default function RiskOverview() {
               input to choose a ZIP code and prepare this overview.
             </p>
             <div className="mt-6">
-              <button
-                type="button"
+              <Link
+                to="/location"
                 className="inline-flex items-center justify-center rounded-lg border border-leaf bg-transparent px-6 py-3 font-medium text-leaf transition-fast hover:bg-moss"
               >
                 Go to Location Input
-              </button>
+              </Link>
             </div>
           </div>
         ) : (
