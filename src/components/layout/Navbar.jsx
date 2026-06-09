@@ -35,7 +35,7 @@ export default function Navbar() {
       <div className="mx-auto max-w-5xl px-4 flex items-center justify-between h-14">
 
         <Link to="/" className="no-underline font-display text-lg text-forest hover:text-forest">
-          DisasterReady
+          Canopy
         </Link>
 
         {/* Desktop */}

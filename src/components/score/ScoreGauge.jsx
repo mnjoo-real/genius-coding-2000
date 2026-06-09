@@ -35,7 +35,7 @@ export default function ScoreGauge({ score = 0, size = 'md' }) {
       height={px}
       viewBox={`0 0 ${px} ${px}`}
       role="img"
-      aria-label={`DisasterReady Score: ${clamped} out of 100`}
+      aria-label={`Canopy Score: ${clamped} out of 100`}
     >
       {/* Background track */}
       <circle

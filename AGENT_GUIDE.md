@@ -4,6 +4,14 @@
 
 This project is a React + Vite frontend MVP for a **location-based eco-disaster preparedness platform**.
 
+The web platform name is **Canopy**.
+
+The platform catchphrase is:
+
+```txt
+Canopy protects your home before disaster strikes.
+```
+
 The app helps users:
 
 1. Enter a ZIP code or location.

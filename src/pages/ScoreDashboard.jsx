@@ -191,7 +191,7 @@ export default function ScoreDashboard() {
   return (
     <main className="min-h-screen bg-parchment px-6 py-16">
         <div className="mx-auto max-w-5xl">
-          <h1 className="text-3xl">Your DisasterReady Score</h1>
+          <h1 className="text-3xl">Your Canopy Score</h1>
           <p className="mt-2 text-stone-500">Based on your location and home assessment.</p>
 
           <div className="mt-10 flex flex-col gap-10">

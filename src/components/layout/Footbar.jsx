@@ -4,7 +4,7 @@ export default function Footbar() {
       <div className="mx-auto max-w-5xl px-4 py-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
 
         <div className="flex flex-col gap-1">
-          <span className="font-display text-base text-forest">DisasterReady</span>
+          <span className="font-display text-base text-forest">Canopy</span>
           <span className="text-sm text-stone-500">Eco-focused home resilience for the risks ahead.</span>
         </div>
 
@@ -17,7 +17,7 @@ export default function Footbar() {
 
       <div className="border-t border-stone-100">
         <p className="mx-auto max-w-5xl px-4 py-3 text-xs text-stone-400 leading-relaxed">
-          DisasterReady Score is a rule-based educational estimate, not an official engineering inspection, insurance assessment, or government determination.
+          Canopy Score is a rule-based educational estimate, not an official engineering inspection, insurance assessment, or government determination.
         </p>
       </div>
     </footer>
