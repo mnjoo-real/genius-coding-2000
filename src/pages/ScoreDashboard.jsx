@@ -4,8 +4,18 @@ import Navbar from '../components/layout/Navbar';
 import Button from '../components/ui/Button';
 import ScoreGauge from '../components/score/ScoreGauge';
 import WeaknessList from '../components/score/WeaknessList';
+import RecommendationCard from '../components/recommendations/RecommendationCard';
+import ScoreSimulationPanel from '../components/simulation/ScoreSimulationPanel';
 import { calculateScore } from '../utils/calculateScore';
 import { getTopRisks } from '../utils/getTopRisks';
+import { generateRecommendations } from '../utils/generateRecommendations';
+import { calculateProjectedScore } from '../utils/calculateProjectedScore';
+
+function impactToPriority(impactLevel) {
+  if (impactLevel === 'High')   return 'now';
+  if (impactLevel === 'Medium') return 'soon';
+  return 'later';
+}
 
 function getScoreLabel(score) {
   if (score >= 75) return { text: 'Prepared',  className: 'text-leaf'      };
@@ -75,8 +85,10 @@ export default function ScoreDashboard() {
   const navigate = useNavigate();
   const [homeProfile,  setHomeProfile]  = useState(null);
   const [regionalRisk, setRegionalRisk] = useState(null);
-  const [scoreData,    setScoreData]    = useState(null);
-  const [topRisks,     setTopRisks]     = useState(null);
+  const [scoreData,       setScoreData]       = useState(null);
+  const [topRisks,        setTopRisks]        = useState(null);
+  const [recommendations, setRecommendations] = useState([]);
+  const [selectedActionIds, setSelectedActionIds] = useState([]);
 
   useEffect(() => {
     const profile = JSON.parse(localStorage.getItem('homeProfile'));
@@ -88,16 +100,29 @@ export default function ScoreDashboard() {
   useEffect(() => {
     if (!homeProfile || !regionalRisk) return;
     try {
-      const result      = calculateScore(regionalRisk, homeProfile);
+      const result         = calculateScore(regionalRisk, homeProfile);
       const topRisksResult = getTopRisks(regionalRisk);
-      const subScores   = deriveSubScores(regionalRisk, homeProfile);
+      const subScores      = deriveSubScores(regionalRisk, homeProfile);
       setScoreData({ ...result, ...subScores });
       setTopRisks(topRisksResult);
     } catch {
       setScoreData(null);
       setTopRisks(null);
     }
+    try {
+      setRecommendations(generateRecommendations(regionalRisk, homeProfile));
+    } catch {
+      setRecommendations([]);
+    }
   }, [homeProfile, regionalRisk]);
+
+  const handleToggle = (actionId) => {
+    setSelectedActionIds(prev =>
+      prev.includes(actionId)
+        ? prev.filter(id => id !== actionId)
+        : [...prev, actionId]
+    );
+  };
 
   const handleStartOver = () => {
     localStorage.removeItem('homeProfile');
@@ -174,14 +199,57 @@ export default function ScoreDashboard() {
               <p className="text-xs font-medium uppercase tracking-widest text-stone-400 mb-3">
                 Recommended Actions
               </p>
-              <div />
+              <h3 className="text-xl mb-4">Recommended actions</h3>
+              {recommendations.length === 0 ? (
+                <p className="text-sm text-stone-400">No recommendations available.</p>
+              ) : (
+                <div className="flex flex-col gap-4">
+                  {recommendations.map(r => (
+                    <RecommendationCard
+                      key={r.id}
+                      title={r.title}
+                      detail={r.description}
+                      priority={impactToPriority(r.impactLevel)}
+                      pointsGain={r.scoreIncrease}
+                      cost={r.estimatedCost}
+                      onLearnMore={() => {}}
+                    />
+                  ))}
+                </div>
+              )}
             </section>
 
             <section>
               <p className="text-xs font-medium uppercase tracking-widest text-stone-400 mb-3">
                 Score Simulator
               </p>
-              <div />
+              <h3 className="text-xl mb-1">See your projected score</h3>
+              <p className="text-sm text-stone-500 mb-6">
+                Toggle actions to see how your score changes.
+              </p>
+              {scoreData && (
+                <>
+                  <ScoreSimulationPanel
+                    baseScore={scoreData.totalScore}
+                    actions={recommendations.map(r => ({
+                      id: r.id,
+                      title: r.title,
+                      pointsGain: r.scoreIncrease,
+                      selected: selectedActionIds.includes(r.id),
+                    }))}
+                    onToggle={handleToggle}
+                  />
+                  <div className="mt-6 flex items-baseline gap-2">
+                    <span className="text-sm text-stone-500">Projected score:</span>
+                    <span className="text-2xl font-bold text-leaf">
+                      {calculateProjectedScore(
+                        scoreData.totalScore,
+                        recommendations.filter(r => selectedActionIds.includes(r.id))
+                      )}
+                    </span>
+                  </div>
+                </>
+              )}
             </section>
 
             <section>
