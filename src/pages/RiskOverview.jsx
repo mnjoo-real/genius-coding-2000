@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import RiskBarChart from "../components/risk/RiskBarChart";
 import RiskCard from "../components/risk/RiskCard";
 import { getRiskLevel } from "../utils/getRiskLevel";
+import { getTopRisks } from "../utils/getTopRisks";
 
 const riskCategoryFields = [
   {
@@ -103,6 +104,7 @@ export default function RiskOverview() {
     value: riskCategory.score,
     color: riskCategory.color,
   }));
+  const topRisks = regionalRisk ? getTopRisks(regionalRisk) : [];
 
   return (
     <main className="min-h-screen bg-parchment px-6 py-12 sm:py-16">
@@ -172,13 +174,35 @@ export default function RiskOverview() {
             <section className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
               <div className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
                 <p className="text-sm font-medium uppercase tracking-[0.2em] text-leaf">
-                  Top Risks
+                  Top Regional Risks
                 </p>
-                <h2 className="mt-3 text-2xl">Top risks placeholder</h2>
+                <h2 className="mt-3 text-2xl">Top Regional Risks</h2>
                 <p className="mt-3 text-stone-600">
-                  The top three regional risks will appear here after the risk
-                  utility is connected.
+                  These are the three highest regional exposure categories for
+                  this saved location.
                 </p>
+                <ol className="mt-5 grid gap-3">
+                  {topRisks.map((risk) => (
+                    <li
+                      key={risk.key}
+                      className="rounded-xl border border-stone-200 bg-parchment/60 p-4"
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <p className="font-medium text-stone-900">
+                            {risk.label}
+                          </p>
+                          <p className="mt-1 text-sm text-stone-500">
+                            {getRiskLevel(risk.score)} risk
+                          </p>
+                        </div>
+                        <p className="shrink-0 text-lg font-medium tabular-nums text-forest">
+                          {risk.score}/100
+                        </p>
+                      </div>
+                    </li>
+                  ))}
+                </ol>
               </div>
 
               <div>
@@ -212,18 +236,18 @@ export default function RiskOverview() {
                 <p className="text-sm font-medium uppercase tracking-[0.2em] text-leaf">
                   Next Step
                 </p>
-                <h2 className="mt-3 text-2xl">Continue button placeholder</h2>
+                <h2 className="mt-3 text-2xl">Check your home readiness</h2>
                 <p className="mt-3 text-stone-600">
-                  Navigation to the home questionnaire will be wired in a later
-                  pass.
+                  Answer a short home check next so your regional risk profile
+                  can be paired with practical preparedness guidance.
                 </p>
               </div>
-              <button
-                type="button"
+              <Link
+                to="/questionnaire"
                 className="mt-6 inline-flex w-full items-center justify-center rounded-lg border border-transparent bg-leaf px-6 py-3 font-medium text-white transition-fast hover:bg-forest sm:mt-0 sm:w-auto"
               >
-                Continue
-              </button>
+                Continue to Home Check
+              </Link>
             </section>
           </div>
         )}
