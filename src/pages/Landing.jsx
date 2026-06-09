@@ -267,11 +267,10 @@ export default function Landing() {
                 ref={globeRef}
                 width={globeDims.width}
                 height={globeDims.height}
-                globeImageUrl="//unpkg.com/three-globe/example/img/earth-day.jpg"
-                bumpImageUrl="//unpkg.com/three-globe/example/img/earth-topology.png"
+                globeImageUrl="https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg"
                 backgroundColor="rgba(0,0,0,0)"
-                atmosphereColor="rgba(110,143,74,0.22)"
-                atmosphereAltitude={0.15}
+                atmosphereColor="rgba(100,180,255,0.45)"
+                atmosphereAltitude={0.28}
                 autoRotate
                 autoRotateSpeed={0.35}
                 pointsData={pinData}
