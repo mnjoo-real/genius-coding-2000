@@ -223,66 +223,119 @@ Risk scores are from `0` to `100`.
 
 Should export `homeQuestions`.
 
-Include 12 questions:
+The current expanded questionnaire includes 20 questions across home structure,
+eco-mitigation status, and preparedness/recovery readiness:
 
-Flood:
+Home Structure & Environment:
 
-* basement
-* water pooling
-* paved surface level
-* gutters maintained
+* `homeType`
+* `ownershipStatus`
+* `basementOrCrawlSpace`
+* `homeAge`
+* `roofMaterial`
+* `windowDoorProtection`
+* `pavedSurfaceLevel`
+* `waterPooling`
+* `dryBrushDistance`
+* `areaDensity`
 
-Wildfire:
+Eco-Mitigation Status:
 
-* dry vegetation near home
-* debris on roof/gutter
+* `ecoFeatures`
+* `largeTreesNearby`
+* `energyOrDrainageAudit`
 
-Heat:
+Recovery Preparedness & Documents:
 
-* shade
-* overheats in summer
-
-Storm:
-
-* reinforced windows
-* large branches nearby
-
-Preparedness:
-
-* document backup
-* emergency plan
+* `insurancePolicy`
+* `knowsPolicyCoverage`
+* `digitalDocuments`
+* `preDisasterPhotos`
+* `emergencyKit`
+* `familyEmergencyPlan`
+* `localEmergencyRegistration`
 
 Each question should include:
 
 ```js
 {
   id,
+  section,
   category,
   question,
-  type
+  type,
+  options,
+  whyItMatters
 }
 ```
 
-Scale questions should include:
+Supported question types are:
 
-```js
-options: ["Low", "Medium", "High"]
+```txt
+single → one selected answer
+multi  → multiple selected answers
 ```
+
+`options` should be an array of user-facing answer labels. Keep the answer
+labels stable where possible because score calculation and recommendation
+generation can depend on exact values.
+
+Question categories may include:
+
+```txt
+Structure
+Ownership
+Flood
+Storm
+Wildfire
+Storm/Wildfire
+Storm/Heat
+Environment
+Eco-Mitigation
+Preparedness
+Insurance
+Documents
+Documentation
+Emergency Preparedness
+```
+
+The questionnaire may contain recovery preparedness questions, but they should
+support the broader Home Readiness score. Do not reframe the main MVP as a
+document organizer or claims workflow.
 
 ### `ecoSolutions.js`
 
 Should export `ecoSolutions`.
 
+The current expanded action catalog includes flood/stormwater, wildfire,
+wind/hurricane, heat, winter storm, and preparedness/recovery actions.
+
 Include actions such as:
 
 * rain garden
+* bioswale
 * permeable pavement
 * downspout redirection
+* rain barrel
+* sump pump
+* basement sealing
 * defensible space
-* native shade trees
+* gutter cleaning
+* ember-resistant vents
+* hurricane shutters
+* impact-resistant windows
+* large tree trimming
+* native shade or windbreak trees
 * cool roof coating
-* branch trimming
-* emergency plan
+* attic insulation or ventilation
+* pipe insulation
+* emergency heating or backup power
+* document backup
+* home inventory
+* household emergency plan
+* emergency kit
+* local emergency registration
+* insurance review
 
 Each solution should include:
 
@@ -290,14 +343,34 @@ Each solution should include:
 {
   id,
   title,
-  disasterType,
+  category,
+  disasterTypes,
   description,
   ecoBenefit,
+  estimatedCost,
   costLevel,
   impactLevel,
   scoreIncrease
 }
 ```
+
+`disasterTypes` should be an array, not a single string. Common values include:
+
+```txt
+Flood
+Stormwater
+Wildfire
+Wind
+Hurricane
+Heat
+Winter Storm
+Emergency Preparedness
+Recovery Preparedness
+```
+
+`costLevel` may use values such as `Free`, `Low`, `Medium`, or `High`.
+`scoreIncrease` is a rule-based estimate used by projected score simulation,
+not an official engineering, insurance, or FEMA-certified value.
 
 ---
 
