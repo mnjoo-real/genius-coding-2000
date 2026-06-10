@@ -100,9 +100,6 @@ function PhotoTile({ item, onRemove }) {
   return (
     <div className="group relative aspect-square overflow-hidden rounded-2xl border border-stone-200 bg-stone-50">
       <img src={item.url} alt={item.name} className="h-full w-full object-cover" />
-      <div className="absolute inset-x-0 bottom-0 bg-stone-950/70 px-3 py-2">
-        <p className="truncate text-xs font-medium text-white">{item.name}</p>
-      </div>
       <button
         type="button"
         onClick={onRemove}

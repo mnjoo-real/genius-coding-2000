@@ -1,8 +1,9 @@
-import { useId, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import ScoreGauge from '../components/score/ScoreGauge';
 import WeaknessList from '../components/score/WeaknessList';
 import RecommendationCard from '../components/recommendations/RecommendationCard';
+import { ecoSolutions } from '../data/ecoSolutions';
 import { calculateScore } from '../utils/calculateScore';
 import { getProjectedScoreDetails } from '../utils/calculateProjectedScore';
 import { generateRecommendations } from '../utils/generateRecommendations';
@@ -18,6 +19,31 @@ function getScoreLabel(score) {
   if (score >= 66) return { text: 'Well Prepared', className: 'text-leaf'      };
   if (score >= 41) return { text: 'Moderate',      className: 'text-amber-500' };
   return              { text: 'High Risk',     className: 'text-red-500'   };
+}
+
+function getActionPointTotal(action) {
+  if (action?.affects) {
+    return Object.values(action.affects).reduce(
+      (sum, value) => sum + (Number(value) || 0),
+      0
+    );
+  }
+
+  return Number(action?.scoreIncrease) || 0;
+}
+
+function groupActionsByCategory(actions) {
+  return actions.reduce((groups, action) => {
+    const category = action.category || 'Other';
+    const existingGroup = groups.find((group) => group.category === category);
+
+    if (existingGroup) {
+      existingGroup.actions.push(action);
+      return groups;
+    }
+
+    return [...groups, { category, actions: [action] }];
+  }, []);
 }
 
 function InfoTooltip({ label, description }) {
@@ -41,8 +67,115 @@ function InfoTooltip({ label, description }) {
   );
 }
 
+function AllActionsModal({ actionGroups, onClose }) {
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/45 px-4 py-6"
+      role="presentation"
+      onMouseDown={onClose}
+    >
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="all-actions-title"
+        className="flex max-h-[86vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-2xl"
+        onMouseDown={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-4 border-b border-stone-200 px-5 py-4 sm:px-6">
+          <div>
+            <p className="text-xs font-medium uppercase tracking-widest text-stone-400">
+              Action Library
+            </p>
+            <h2 id="all-actions-title" className="mt-1 text-2xl">
+              All Recommended Actions
+            </h2>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-stone-100 text-lg font-semibold leading-none text-stone-600 transition-colors hover:bg-stone-200 hover:text-stone-900"
+            aria-label="Close all recommended actions"
+          >
+            x
+          </button>
+        </div>
+
+        <div className="overflow-y-auto px-5 py-5 sm:px-6">
+          <div className="flex flex-col gap-7">
+            {actionGroups.map((group) => (
+              <section key={group.category} className="scroll-mt-4">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <h3 className="text-base font-semibold text-stone-900">
+                    {group.category}
+                  </h3>
+                  <span className="rounded-full bg-moss px-3 py-1 text-xs font-medium text-forest">
+                    {group.actions.length} actions
+                  </span>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {group.actions.map((action) => {
+                    const points = getActionPointTotal(action);
+
+                    return (
+                      <article
+                        key={action.id}
+                        className="rounded-xl border border-stone-200 bg-parchment/50 p-4"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <h4 className="text-sm font-semibold leading-snug text-stone-900">
+                            {action.title}
+                          </h4>
+                          {points > 0 && (
+                            <span className="shrink-0 rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-800">
+                              +{points} pts
+                            </span>
+                          )}
+                        </div>
+
+                        <p className="mt-2 text-sm leading-relaxed text-stone-500">
+                          {action.description}
+                        </p>
+
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {action.estimatedCost && (
+                            <span className="rounded-full bg-white px-2.5 py-1 text-xs font-medium text-stone-600">
+                              {action.estimatedCost}
+                            </span>
+                          )}
+                          {action.impactLevel && (
+                            <span className="rounded-full bg-white px-2.5 py-1 text-xs font-medium text-stone-600">
+                              {action.impactLevel} impact
+                            </span>
+                          )}
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+              </section>
+            ))}
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
 export default function ScoreDashboard() {
   const [doneActionIds,   setDoneActionIds]   = useState([]);
+  const [isActionsModalOpen, setIsActionsModalOpen] = useState(false);
   const [homeProfile] = useState(() => readHomeProfile());
   const [regionalRisk] = useState(() => readRegionalRisk());
   const recommendationsTooltipId = useId();
@@ -70,6 +203,11 @@ export default function ScoreDashboard() {
   const completedRecommendations = useMemo(
     () => recommendations.filter((recommendation) => doneActionIds.includes(recommendation.id)),
     [recommendations, doneActionIds],
+  );
+
+  const allActionGroups = useMemo(
+    () => groupActionsByCategory(ecoSolutions),
+    [],
   );
 
   const projectedScore = useMemo(
@@ -182,9 +320,13 @@ export default function ScoreDashboard() {
               {/* ── RIGHT COLUMN: recommendation cards ──────────────── */}
               <div className="lg:col-span-3 flex flex-col gap-4">
                 <div className="flex items-center gap-2">
-                  <p className="text-xs font-medium uppercase tracking-widest text-stone-400">
+                  <button
+                    type="button"
+                    onClick={() => setIsActionsModalOpen(true)}
+                    className="rounded-sm text-left text-xs font-medium uppercase tracking-widest text-stone-400 underline-offset-4 transition-colors hover:text-forest hover:underline focus-visible:text-forest"
+                  >
                     Recommended Actions
-                  </p>
+                  </button>
                   <InfoTooltip
                     label={recommendationsTooltipId}
                     description="These actions are ranked from your score gaps, home vulnerabilities, and the biggest score gains available first."
@@ -217,6 +359,13 @@ export default function ScoreDashboard() {
                 </Link>
               </div>
             </div>
+
+            {isActionsModalOpen && (
+              <AllActionsModal
+                actionGroups={allActionGroups}
+                onClose={() => setIsActionsModalOpen(false)}
+              />
+            )}
           </>
         )}
 

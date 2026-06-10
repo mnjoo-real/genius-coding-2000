@@ -6,7 +6,7 @@ export default function Footbar() {
         <div className="flex flex-col gap-1">
           <span className="font-display text-base text-forest">Canopy</span>
           <span className="text-sm text-stone-500">
-            Eco-focused home resilience for the risks ahead.
+            Canopy protects your home before the storm hits.
           </span>
         </div>
 
