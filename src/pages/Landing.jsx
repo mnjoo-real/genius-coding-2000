@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../components/ui/Button';
-import { regionalRiskData, fallbackRiskData } from '../data/regionalRiskData';
+import { getRegionalRiskByZip } from '../services/riskLookupService';
+import { lookupZipCode } from '../services/zipLookupService';
 import { saveResolvedLocationProfile } from '../services/userInfoSyncService';
 import {
   formatRiskScore,
@@ -13,14 +14,6 @@ import {
 const Globe = lazy(() => import('react-globe.gl'));
 
 // ── Constants ──────────────────────────────────────────────────────────────
-
-const ZIP_COORDS = {
-  '33101': { lat: 25.7617,  lng: -80.1918  },
-  '14623': { lat: 43.0954,  lng: -77.6631  },
-  '90001': { lat: 33.9731,  lng: -118.2479 },
-  '77001': { lat: 29.7604,  lng: -95.3698  },
-  '80202': { lat: 39.7392,  lng: -104.9903 },
-};
 
 const FEATURES = [
   {
@@ -329,6 +322,7 @@ export default function Landing() {
 
   const [zip, setZip]                   = useState('');
   const [zipError, setZipError]         = useState('');
+  const [isLookingUp, setIsLookingUp]   = useState(false);
   const [selectedRisk, setSelectedRisk] = useState(null);
   const [pinData, setPinData]           = useState([]);
   const [globeDims, setGlobeDims]       = useState({ width: 0, height: 0 });
@@ -361,35 +355,63 @@ export default function Landing() {
     }, 150);
   }, [globeReady]);
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
     const trimmed = zip.trim();
-    if (!trimmed) { setZipError('Please enter a ZIP code.'); return; }
+    if (!trimmed) {
+      setZipError('Please enter a ZIP code.');
+      return;
+    }
 
-    const profile = regionalRiskData.find(r => r.zipCode === trimmed);
-    const risk = profile
-      ? profile
-      : { ...fallbackRiskData, zipCode: trimmed, city: 'Your area', state: '' };
+    if (isLookingUp) {
+      return;
+    }
 
-    const coords = ZIP_COORDS[trimmed] || { lat: 39.5, lng: -98.35 };
-
-    saveResolvedLocationProfile(trimmed, risk);
-
-    setSelectedRisk(risk);
+    setIsLookingUp(true);
     setZipError('');
-    setPinData([{ lat: coords.lat, lng: coords.lng }]);
 
-    if (globeRef.current) {
-      globeRef.current.pointOfView(
-        { lat: coords.lat, lng: coords.lng, altitude: 1.4 },
-        1500
-      );
-      // Re-assert auto-rotate so it survives the pointOfView call
-      const controls = globeRef.current.controls();
-      if (controls) {
-        controls.autoRotate = true;
-        controls.autoRotateSpeed = 0.5;
+    try {
+      const [locationProfile, riskProfile] = await Promise.all([
+        lookupZipCode(trimmed),
+        getRegionalRiskByZip(trimmed),
+      ]);
+
+      if (!riskProfile) {
+        setSelectedRisk(null);
+        setPinData([]);
+        setZipError('We could not find regional risk data for this ZIP code.');
+        return;
       }
+
+      const coords =
+        locationProfile?.latitude != null && locationProfile?.longitude != null
+          ? { lat: Number(locationProfile.latitude), lng: Number(locationProfile.longitude) }
+          : { lat: 39.5, lng: -98.35 };
+
+      saveResolvedLocationProfile(trimmed, riskProfile);
+
+      setSelectedRisk(riskProfile);
+      setPinData([{ lat: coords.lat, lng: coords.lng }]);
+
+      if (globeRef.current) {
+        globeRef.current.pointOfView(
+          { lat: coords.lat, lng: coords.lng, altitude: 1.4 },
+          1500
+        );
+        // Re-assert auto-rotate so it survives the pointOfView call
+        const controls = globeRef.current.controls();
+        if (controls) {
+          controls.autoRotate = true;
+          controls.autoRotateSpeed = 0.5;
+        }
+      }
+    } catch (error) {
+      console.error('Failed to resolve ZIP code lookup:', error);
+      setSelectedRisk(null);
+      setPinData([]);
+      setZipError('Unable to load regional risk data right now. Please try again.');
+    } finally {
+      setIsLookingUp(false);
     }
   }
 
@@ -436,8 +458,13 @@ export default function Landing() {
                     : 'border-stone-300 focus:border-leaf',
                 ].join(' ')}
               />
-              <Button type="submit" size="md" className="shrink-0 py-2.5!">
-                View My Risk
+              <Button
+                type="submit"
+                size="md"
+                className="shrink-0 py-2.5!"
+                disabled={isLookingUp}
+              >
+                {isLookingUp ? 'Loading...' : 'View My Risk'}
               </Button>
             </div>
             {zipError && (
@@ -449,7 +476,7 @@ export default function Landing() {
           {selectedRisk && (
             <button
               type="button"
-              onClick={() => navigate('/risk')}
+              onClick={() => navigate('/questionnaire')}
               className="mt-4 inline-flex items-center gap-1.5 text-sm text-leaf hover:text-forest transition-fast"
             >
               Continue to full assessment
