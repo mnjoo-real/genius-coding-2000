@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import RecoveryChecklist from "../components/recovery/RecoveryChecklist";
 import HomePhotoGallery from "../components/recovery/HomePhotoGallery";
 import AidEligibilityForm from "../components/recovery/AidEligibilityForm";
 import DeadlineTracker from "../components/recovery/DeadlineTracker";
 import AidApplicationStatusList from "../components/recovery/AidApplicationStatusList";
+import { recoveryQuestionTiers } from "../data/recoveryQuestions";
 import { calculateAidDeadlines } from "../utils/calculateAidDeadlines";
 import { matchAidPrograms } from "../utils/matchAidPrograms";
 
@@ -75,6 +76,9 @@ export default function Recovery() {
   const [hasMatched, setHasMatched] = useState(false);
   const [hasDisasterProfile, setHasDisasterProfile] = useState(initialState.hasDisasterProfile);
   const [isEditingDisasterProfile, setIsEditingDisasterProfile] = useState(false);
+  const [activeRecoveryTierId, setActiveRecoveryTierId] = useState(
+    recoveryQuestionTiers[0]?.id ?? null
+  );
 
   const matchedPrograms = useMemo(() => {
     if (!hasMatched || !hasDisasterProfile) {
@@ -109,22 +113,31 @@ export default function Recovery() {
     setHasDisasterProfile(true);
     setHasMatched(true);
     setIsEditingDisasterProfile(false);
+    setActiveRecoveryTierId(null);
   };
 
   const handleCreateDisasterProfile = () => {
     setAnswers({});
     setHasMatched(false);
     setIsEditingDisasterProfile(true);
+    setActiveRecoveryTierId(recoveryQuestionTiers[0]?.id ?? null);
   };
 
   const handleEditDisasterProfile = () => {
     setHasMatched(false);
     setIsEditingDisasterProfile(true);
+    setActiveRecoveryTierId(recoveryQuestionTiers[0]?.id ?? null);
   };
 
   const handleReviewRecoveryPlan = () => {
     setHasMatched(true);
     setIsEditingDisasterProfile(false);
+    setActiveRecoveryTierId(null);
+  };
+
+  const handleCloseDisasterProfileEditor = () => {
+    setIsEditingDisasterProfile(false);
+    setActiveRecoveryTierId(null);
   };
 
   const handleStartNewDisasterProfile = () => {
@@ -141,6 +154,7 @@ export default function Recovery() {
     setHasMatched(false);
     setHasDisasterProfile(false);
     setIsEditingDisasterProfile(false);
+    setActiveRecoveryTierId(null);
   };
 
   const shouldShowIntroCard = !hasDisasterProfile && !isEditingDisasterProfile;
@@ -240,6 +254,9 @@ export default function Recovery() {
             answers={answers}
             onChange={setAnswers}
             onSubmit={handleSubmit}
+            activeTierId={activeRecoveryTierId}
+            onActiveTierChange={setActiveRecoveryTierId}
+            onClose={handleCloseDisasterProfileEditor}
           />
         ) : null}
 

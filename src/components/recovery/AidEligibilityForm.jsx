@@ -50,11 +50,30 @@ export default function AidEligibilityForm({
   onChange,
   setAnswers,
   onSubmit,
+  activeTierId,
+  onActiveTierChange,
+  onClose,
 }) {
   const currentAnswers = normalizeAnswers(answers);
   const recoveryNeeds = normalizeMultiValue(currentAnswers.recoveryNeeds);
   const questionMap = getQuestionMap();
   const updateAnswers = onChange ?? setAnswers;
+  const tiers = Array.isArray(recoveryQuestionTiers) ? recoveryQuestionTiers : [];
+  const resolvedActiveTierId =
+    tiers.some((tier) => tier.id === activeTierId) ? activeTierId : tiers[0]?.id ?? "";
+  const activeTierIndex = Math.max(
+    0,
+    tiers.findIndex((tier) => tier.id === resolvedActiveTierId)
+  );
+  const activeTier = tiers[activeTierIndex] ?? tiers[0] ?? null;
+
+  const activeTierQuestions = activeTier
+    ? (Array.isArray(activeTier.questionIds) && activeTier.questionIds.length > 0
+        ? activeTier.questionIds
+            .map((questionId) => questionMap.get(questionId))
+            .filter(Boolean)
+        : recoveryQuestions.filter((question) => question.tier === activeTier.id))
+    : [];
 
   const handleFieldChange = (field, value) => {
     const nextAnswers = buildNextAnswers(currentAnswers, { [field]: value });
@@ -151,57 +170,148 @@ export default function AidEligibilityForm({
   };
 
   return (
-    <section className="rounded-3xl border border-stone-200 bg-white p-6 shadow-sm">
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
-          Recovery Center
-        </p>
-        <h2 className="mt-2 text-2xl font-semibold text-stone-900">Aid Eligibility Check</h2>
+    <section className="overflow-hidden rounded-3xl border border-stone-200 bg-white shadow-sm">
+      <div className="flex flex-wrap items-start justify-between gap-4 border-b border-stone-100 px-6 py-5">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
+            Recovery Center
+          </p>
+          <h2 className="mt-2 text-2xl font-semibold text-stone-900">Aid Eligibility Check</h2>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-stone-600">
+            Work through one section at a time. Your answers stay on the page, and you can close
+            the editor at any point without losing progress.
+          </p>
+        </div>
+
+        {onClose ? (
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-stone-200 bg-white text-stone-500 transition-colors hover:border-stone-300 hover:bg-stone-50 hover:text-stone-700"
+            aria-label="Close disaster profile editor"
+            title="Close"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path
+                d="M4 4l8 8M12 4l-8 8"
+                stroke="currentColor"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="1.5"
+              />
+            </svg>
+          </button>
+        ) : null}
       </div>
 
-      <form
-        className="mt-6 grid gap-6"
-        onSubmit={(event) => {
-          event.preventDefault();
-          onSubmit?.(buildNextAnswers(currentAnswers, { recoveryNeeds }));
-        }}
-      >
-        {recoveryQuestionTiers.map((tier) => {
-          const tierQuestions = Array.isArray(tier.questionIds) && tier.questionIds.length > 0
-            ? tier.questionIds
-                .map((questionId) => questionMap.get(questionId))
-                .filter(Boolean)
-            : recoveryQuestions.filter((question) => question.tier === tier.id);
+      <div className="grid gap-0 lg:grid-cols-[240px_minmax(0,1fr)]">
+        <aside className="border-b border-stone-100 bg-stone-50 p-4 lg:border-b-0 lg:border-r">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">
+            Sections
+          </p>
+          <div className="mt-3 grid gap-2">
+            {tiers.map((tier, index) => {
+              const isActive = tier.id === resolvedActiveTierId;
 
-          if (tierQuestions.length === 0) {
-            return null;
-          }
+              return (
+                <button
+                  key={tier.id}
+                  type="button"
+                  onClick={() => onActiveTierChange?.(tier.id)}
+                  className={`rounded-2xl border px-3 py-3 text-left transition-colors ${
+                    isActive
+                      ? "border-emerald-300 bg-emerald-50 text-emerald-950"
+                      : "border-stone-200 bg-white text-stone-700 hover:border-stone-300 hover:bg-stone-50"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white text-[11px] font-semibold text-stone-600 shadow-sm">
+                      {index + 1}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold">{tier.title}</p>
+                      <p className="mt-1 line-clamp-2 text-xs leading-5 text-stone-500">
+                        {tier.description}
+                      </p>
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </aside>
 
-          return (
-            <section key={tier.id} className="grid gap-4 rounded-3xl border border-stone-200 bg-stone-50 p-5">
-              <div className="grid gap-1">
-                <h3 className="text-lg font-semibold text-stone-900">{tier.title}</h3>
-                {tier.description ? (
-                  <p className="text-sm leading-6 text-stone-600">{tier.description}</p>
-                ) : null}
+        <form
+          className="p-6"
+          onSubmit={(event) => {
+            event.preventDefault();
+            onSubmit?.(buildNextAnswers(currentAnswers, { recoveryNeeds }));
+          }}
+        >
+          {activeTier ? (
+            <div className="rounded-3xl border border-stone-200 bg-stone-50 p-5">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">
+                    Step {activeTierIndex + 1} of {tiers.length}
+                  </p>
+                  <h3 className="mt-2 text-xl font-semibold text-stone-900">{activeTier.title}</h3>
+                  {activeTier.description ? (
+                    <p className="mt-2 max-w-2xl text-sm leading-6 text-stone-600">
+                      {activeTier.description}
+                    </p>
+                  ) : null}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const previousTier = tiers[activeTierIndex - 1];
+                      if (previousTier) {
+                        onActiveTierChange?.(previousTier.id);
+                      }
+                    }}
+                    disabled={activeTierIndex === 0}
+                    className="inline-flex items-center justify-center rounded-full border border-stone-200 bg-white px-4 py-2 text-sm font-semibold text-stone-700 transition-colors hover:border-stone-300 hover:bg-stone-100 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Previous
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const nextTier = tiers[activeTierIndex + 1];
+                      if (nextTier) {
+                        onActiveTierChange?.(nextTier.id);
+                      }
+                    }}
+                    disabled={activeTierIndex >= tiers.length - 1}
+                    className="inline-flex items-center justify-center rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-800 transition-colors hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Next
+                  </button>
+                </div>
               </div>
 
-              <div className="grid gap-5">
-                {tierQuestions.map((question) => renderField(question))}
+              <div className="mt-6 grid gap-5">
+                {activeTierQuestions.map((question) => renderField(question))}
               </div>
-            </section>
-          );
-        })}
+            </div>
+          ) : null}
 
-        <div className="pt-2">
-          <button
-            type="submit"
-            className="inline-flex items-center justify-center rounded-full bg-emerald-700 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-emerald-800"
-          >
-            Check Eligibility
-          </button>
-        </div>
-      </form>
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
+            <button
+              type="submit"
+              className="inline-flex items-center justify-center rounded-full bg-emerald-700 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-emerald-800"
+            >
+              Check Eligibility
+            </button>
+            <p className="text-xs leading-5 text-stone-500">
+              This saves your profile locally and updates the recovery match results.
+            </p>
+          </div>
+        </form>
+      </div>
     </section>
   );
 }
