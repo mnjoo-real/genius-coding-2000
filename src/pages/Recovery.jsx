@@ -3,9 +3,11 @@ import { Link } from "react-router-dom";
 import RecoveryChecklist from "../components/recovery/RecoveryChecklist";
 import HomePhotoGallery from "../components/recovery/HomePhotoGallery";
 import AidEligibilityForm from "../components/recovery/AidEligibilityForm";
+import FemaAssistanceEstimateForm from "../components/recovery/FemaAssistanceEstimateForm";
 import DeadlineTracker from "../components/recovery/DeadlineTracker";
 import AidApplicationStatusList from "../components/recovery/AidApplicationStatusList";
 import { recoveryQuestionTiers } from "../data/recoveryQuestions";
+import { getFemaAssistanceEstimate } from "../services/femaAssistanceEstimateService";
 import { calculateAidDeadlines } from "../utils/calculateAidDeadlines";
 import { matchAidPrograms } from "../utils/matchAidPrograms";
 import {
@@ -32,6 +34,53 @@ function stripBaseAnswers(answers, baseAnswers) {
   return sanitizedAnswers;
 }
 
+const INITIAL_FEMA_ESTIMATOR_ANSWERS = {
+  zipCode: "",
+  state: "",
+  county: "",
+  ownRent: "",
+  grossIncome: "",
+  householdComposition: "",
+  homeDamage: null,
+  floodDamage: null,
+};
+
+function formatMoney(value) {
+  if (value === null || value === undefined || value === "") {
+    return "No match";
+  }
+
+  const number = Number(value);
+
+  if (!Number.isFinite(number)) {
+    return String(value);
+  }
+
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  }).format(number);
+}
+
+function formatRate(value) {
+  if (value === null || value === undefined || value === "") {
+    return "No match";
+  }
+
+  const number = Number(value);
+
+  if (!Number.isFinite(number)) {
+    return String(value);
+  }
+
+  if (number <= 1) {
+    return `${(number * 100).toFixed(1)}%`;
+  }
+
+  return `${number.toFixed(1)}%`;
+}
+
 export default function Recovery() {
   const [preparednessSnapshot] = useState(() => readPreparednessSnapshot());
   const baseRecoveryAnswers = useMemo(
@@ -48,6 +97,12 @@ export default function Recovery() {
   const [activeRecoveryTierId, setActiveRecoveryTierId] = useState(
     recoveryQuestionTiers[0]?.id ?? null
   );
+  const [femaEstimatorAnswers, setFemaEstimatorAnswers] = useState(
+    INITIAL_FEMA_ESTIMATOR_ANSWERS
+  );
+  const [femaEstimateResult, setFemaEstimateResult] = useState(null);
+  const [femaEstimateLoading, setFemaEstimateLoading] = useState(false);
+  const [femaEstimateError, setFemaEstimateError] = useState("");
   const hasBaseRecoveryContext = Object.keys(baseRecoveryAnswers).length > 0;
   const hasSavedRecoveryAnswers = Object.keys(recoveryAnswers).length > 0;
   const hasDisasterProfile = hasBaseRecoveryContext || hasSavedRecoveryAnswers;
@@ -151,6 +206,42 @@ export default function Recovery() {
     setActiveRecoveryTierId(null);
   };
 
+  const handleFemaEstimatorChange = (nextValues) => {
+    setFemaEstimatorAnswers((currentValues) => ({
+      ...currentValues,
+      ...(nextValues && typeof nextValues === "object" && !Array.isArray(nextValues)
+        ? nextValues
+        : {}),
+    }));
+    setFemaEstimateError("");
+  };
+
+  const handleFemaEstimatorSubmit = async (submittedValues) => {
+    const payload = {
+      ...INITIAL_FEMA_ESTIMATOR_ANSWERS,
+      ...(submittedValues && typeof submittedValues === "object" && !Array.isArray(submittedValues)
+        ? submittedValues
+        : {}),
+    };
+
+    setFemaEstimatorAnswers(payload);
+    setFemaEstimateLoading(true);
+    setFemaEstimateError("");
+
+    try {
+      const result = await getFemaAssistanceEstimate(payload);
+      setFemaEstimateResult(result);
+    } catch (error) {
+      console.error("Failed to load FEMA assistance estimate:", error);
+      setFemaEstimateResult(null);
+      setFemaEstimateError(
+        "We could not load the FEMA estimate right now. Please try again."
+      );
+    } finally {
+      setFemaEstimateLoading(false);
+    }
+  };
+
   const shouldShowIntroCard = !hasDisasterProfile && !isEditingDisasterProfile;
   const shouldShowBaseContextCard =
     hasBaseRecoveryContext && !hasSavedRecoveryAnswers && !isEditingDisasterProfile && !hasMatched;
@@ -210,6 +301,149 @@ export default function Recovery() {
             </div>
           </section>
         ) : null}
+
+        <section className="rounded-3xl border border-sky-200 bg-sky-50/60 p-6 shadow-sm">
+          <div className="flex flex-col gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-700">
+                FEMA Estimate
+              </p>
+              <h2 className="mt-2 text-2xl font-semibold text-stone-900">
+                Historical FEMA IHP estimate
+              </h2>
+              <p className="mt-3 max-w-3xl text-sm leading-6 text-stone-600">
+                Use this form to estimate assistance from historical FEMA Individuals and
+                Households Program records for a damaged home.
+              </p>
+            </div>
+
+            <FemaAssistanceEstimateForm
+              values={femaEstimatorAnswers}
+              onChange={handleFemaEstimatorChange}
+              onSubmit={handleFemaEstimatorSubmit}
+              isSubmitting={femaEstimateLoading}
+            />
+
+            <p className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-900">
+              This estimate is based on historical FEMA Individuals and Households Program
+              records. It is not a guarantee of FEMA eligibility or payment.
+            </p>
+
+            {femaEstimateError ? (
+              <p className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium leading-6 text-rose-700">
+                {femaEstimateError}
+              </p>
+            ) : null}
+
+            {femaEstimateResult ? (
+              <section className="rounded-3xl border border-stone-200 bg-white p-6 shadow-sm">
+                <div className="flex flex-col gap-2 border-b border-stone-100 pb-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
+                    Estimate Result
+                  </p>
+                  <h3 className="text-xl font-semibold text-stone-900">Estimated FEMA IHP range</h3>
+                  <p className="text-sm leading-6 text-stone-600">
+                    Match level: <span className="font-semibold text-stone-900">{femaEstimateResult.matchLevel || "none"}</span>
+                  </p>
+                </div>
+
+                <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                  <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
+                    <p className="text-xs font-medium uppercase tracking-[0.2em] text-stone-500">
+                      Estimated low
+                    </p>
+                    <p className="mt-2 text-lg font-semibold text-stone-900">
+                      {formatMoney(femaEstimateResult.estimatedLow)}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
+                    <p className="text-xs font-medium uppercase tracking-[0.2em] text-stone-500">
+                      Estimated median
+                    </p>
+                    <p className="mt-2 text-lg font-semibold text-stone-900">
+                      {formatMoney(femaEstimateResult.estimatedMedian)}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
+                    <p className="text-xs font-medium uppercase tracking-[0.2em] text-stone-500">
+                      Estimated high
+                    </p>
+                    <p className="mt-2 text-lg font-semibold text-stone-900">
+                      {formatMoney(femaEstimateResult.estimatedHigh)}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
+                    <p className="text-xs font-medium uppercase tracking-[0.2em] text-stone-500">
+                      Eligibility rate
+                    </p>
+                    <p className="mt-2 text-lg font-semibold text-stone-900">
+                      {formatRate(femaEstimateResult.eligibilityRate)}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
+                    <p className="text-xs font-medium uppercase tracking-[0.2em] text-stone-500">
+                      Sample size
+                    </p>
+                    <p className="mt-2 text-lg font-semibold text-stone-900">
+                      {femaEstimateResult.sampleSize ?? "No match"}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
+                    <p className="text-xs font-medium uppercase tracking-[0.2em] text-stone-500">
+                      Match level
+                    </p>
+                    <p className="mt-2 text-lg font-semibold text-stone-900">
+                      {femaEstimateResult.matchLevel || "none"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                  <div className="rounded-2xl border border-stone-200 bg-white p-4">
+                    <p className="text-xs font-medium uppercase tracking-[0.2em] text-stone-500">
+                      Housing
+                    </p>
+                    <p className="mt-2 text-sm font-semibold text-stone-900">
+                      {formatMoney(femaEstimateResult.assistanceBreakdown?.housing)}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-stone-200 bg-white p-4">
+                    <p className="text-xs font-medium uppercase tracking-[0.2em] text-stone-500">
+                      Other needs
+                    </p>
+                    <p className="mt-2 text-sm font-semibold text-stone-900">
+                      {formatMoney(femaEstimateResult.assistanceBreakdown?.otherNeeds)}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-stone-200 bg-white p-4">
+                    <p className="text-xs font-medium uppercase tracking-[0.2em] text-stone-500">
+                      Rental
+                    </p>
+                    <p className="mt-2 text-sm font-semibold text-stone-900">
+                      {formatMoney(femaEstimateResult.assistanceBreakdown?.rental)}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-stone-200 bg-white p-4">
+                    <p className="text-xs font-medium uppercase tracking-[0.2em] text-stone-500">
+                      Repair
+                    </p>
+                    <p className="mt-2 text-sm font-semibold text-stone-900">
+                      {formatMoney(femaEstimateResult.assistanceBreakdown?.repair)}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-stone-200 bg-white p-4">
+                    <p className="text-xs font-medium uppercase tracking-[0.2em] text-stone-500">
+                      Personal property
+                    </p>
+                    <p className="mt-2 text-sm font-semibold text-stone-900">
+                      {formatMoney(femaEstimateResult.assistanceBreakdown?.personalProperty)}
+                    </p>
+                  </div>
+                </div>
+              </section>
+            ) : null}
+          </div>
+        </section>
 
         {shouldShowBaseContextCard ? (
           <section className="rounded-3xl border border-stone-200 bg-white p-6 shadow-sm">
