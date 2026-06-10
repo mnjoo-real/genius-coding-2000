@@ -3,8 +3,10 @@ import { Link, useLocation } from 'react-router-dom';
 
 const navLinks = [
   { label: 'Home',      to: '/' },
-  { label: 'My Score',  to: '/dashboard' },
+  { label: 'My Canopy',  to: '/dashboard' },
   { label: 'Recovery',  to: '/recovery' },
+  { label: 'My info',  to: '/user-info' },
+  { label: 'Login',  to: '/login' },
 ];
 
 function NavLink({ label, to, active, onClick }) {

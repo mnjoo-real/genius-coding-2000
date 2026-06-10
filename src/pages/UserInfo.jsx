@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import HomePhotoUploadGrid from "../components/recovery/HomePhotoUploadGrid";
 import { calculateScore } from "../utils/calculateScore";
 
 function safeParseJson(value) {
@@ -279,6 +280,8 @@ export default function UserInfo() {
             <p className="mt-4 text-sm text-stone-600">No major vulnerabilities detected.</p>
           )}
         </section>
+
+        <HomePhotoUploadGrid />
 
         <section className="rounded-3xl border border-stone-200 bg-white p-6 shadow-sm">
           <h2 className="text-xl font-semibold text-stone-900">Home questionnaire answers</h2>
