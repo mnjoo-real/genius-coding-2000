@@ -1,6 +1,5 @@
 from pathlib import Path
 import pandas as pd
-import math
 
 RAW_PATH = Path("data/raw/NRI_Table_Counties.csv")
 OUT_PATH = Path("data/processed/county_risk_profiles.csv")
@@ -8,7 +7,7 @@ OUT_PATH = Path("data/processed/county_risk_profiles.csv")
 SOURCE = "FEMA National Risk Index v1.20, December 2025"
 METHODOLOGY_NOTE = (
     "County-level FEMA NRI hazard Risk Index Scores mapped to app categories "
-    "for educational planning use."
+    "using average hazard scores for educational planning use."
 )
 
 
@@ -28,23 +27,28 @@ def round_score(value):
     return int(round(number))
 
 
-def choose_max_score_and_rating(row, score_cols, rating_cols):
-    best_score = None
-    best_rating = None
+def choose_average_score_and_rating(row, score_cols, rating_cols):
+    scored_components = []
 
     for score_col, rating_col in zip(score_cols, rating_cols):
         score = to_number(row.get(score_col))
         if score is None:
             continue
 
-        if best_score is None or score > best_score:
-            best_score = score
-            best_rating = row.get(rating_col)
+        scored_components.append((score, row.get(rating_col)))
 
-    if best_score is None:
+    if not scored_components:
         return None, None
 
-    return int(round(best_score)), best_rating
+    average_score = sum(score for score, _ in scored_components) / len(scored_components)
+    rounded_score = int(round(average_score))
+
+    closest_rating = min(
+        scored_components,
+        key=lambda item: abs(item[0] - average_score),
+    )[1]
+
+    return rounded_score, closest_rating
 
 
 def clean_text(value):
@@ -74,19 +78,19 @@ def main():
     rows = []
 
     for _, row in df.iterrows():
-        flood_score, flood_rating = choose_max_score_and_rating(
+        flood_score, flood_rating = choose_average_score_and_rating(
             row,
             ["CFLD_RISKS", "IFLD_RISKS"],
             ["CFLD_RISKR", "IFLD_RISKR"],
         )
 
-        storm_score, storm_rating = choose_max_score_and_rating(
+        storm_score, storm_rating = choose_average_score_and_rating(
             row,
             ["HRCN_RISKS", "SWND_RISKS", "TRND_RISKS"],
             ["HRCN_RISKR", "SWND_RISKR", "TRND_RISKR"],
         )
 
-        winter_score, winter_rating = choose_max_score_and_rating(
+        winter_score, winter_rating = choose_average_score_and_rating(
             row,
             ["WNTW_RISKS", "ISTM_RISKS", "CWAV_RISKS"],
             ["WNTW_RISKR", "ISTM_RISKR", "CWAV_RISKR"],

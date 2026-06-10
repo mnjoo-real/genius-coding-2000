@@ -10,7 +10,7 @@ export default function Footbar() {
 
         <nav aria-label="Footer links" className="flex items-center gap-5">
           <a href="/about" className="text-sm text-stone-500 hover:text-forest no-underline transition-fast">About</a>
-          <a href="https://github.com" className="text-sm text-stone-500 hover:text-forest no-underline transition-fast" target="_blank" rel="noreferrer">GitHub</a>
+          <a href="https://github.com/mnjoo-real/genius-coding-2000" className="text-sm text-stone-500 hover:text-forest no-underline transition-fast" target="_blank" rel="noreferrer">GitHub</a>
         </nav>
 
       </div>
