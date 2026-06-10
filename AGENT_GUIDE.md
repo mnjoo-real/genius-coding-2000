@@ -104,6 +104,11 @@ G. homePhotoEvidence
 - Should support category, timestamp, note, and photo records.
 - Avoid storing many full image binaries in localStorage long-term.
 
+H. readiness_score_snapshots
+- Stores the latest readiness score state for a profile, not a full historical score timeline.
+- Should be treated as the current snapshot for a given profile_id.
+- If history is needed later, add a separate append-only table instead of overloading this one.
+
 3. Add or update a section describing Recovery flow.
 
 Expected Recovery.jsx flow:

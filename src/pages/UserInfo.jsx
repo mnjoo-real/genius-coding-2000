@@ -1,42 +1,13 @@
-import { useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import HomePhotoUploadGrid from "../components/recovery/HomePhotoUploadGrid";
 import { calculateScore } from "../utils/calculateScore";
-
-function safeParseJson(value) {
-  if (typeof value !== "string") {
-    return null;
-  }
-
-  try {
-    return JSON.parse(value);
-  } catch {
-    return null;
-  }
-}
-
-function readStorageValue(key) {
-  if (typeof window === "undefined") {
-    return null;
-  }
-
-  const rawValue = window.localStorage.getItem(key);
-  if (rawValue == null) {
-    return null;
-  }
-
-  if (key === "selectedZipCode") {
-    const parsedValue = safeParseJson(rawValue);
-
-    if (typeof parsedValue === "string") {
-      return parsedValue;
-    }
-
-    return rawValue;
-  }
-
-  return safeParseJson(rawValue);
-}
+import {
+  canSyncPreparednessProfile,
+  fetchPreparednessSnapshotFromSupabase,
+  hydratePreparednessSnapshotToLocalStorage,
+  readPreparednessSnapshot,
+  syncPreparednessProfileToSupabase,
+} from "../services/userInfoSyncService";
 
 function formatLabel(value) {
   if (!value) {
@@ -262,9 +233,16 @@ function PreparednessReport({ selectedZipCode, scoreData, scoreUnavailable }) {
 }
 
 export default function UserInfo() {
-  const selectedZipCode = readStorageValue("selectedZipCode");
-  const regionalRisk = readStorageValue("regionalRisk");
-  const homeProfile = readStorageValue("homeProfile");
+  const [preparednessSnapshot, setPreparednessSnapshot] = useState(() => readPreparednessSnapshot());
+  const [syncState, setSyncState] = useState({
+    status: "idle",
+    message: "",
+    syncedAt: null,
+  });
+
+  const selectedZipCode = preparednessSnapshot.selectedZipCode;
+  const regionalRisk = preparednessSnapshot.regionalRisk;
+  const homeProfile = preparednessSnapshot.homeProfile;
 
   const { scoreData, scoreUnavailable } = useMemo(() => {
     if (!regionalRisk || !homeProfile) {
@@ -280,6 +258,118 @@ export default function UserInfo() {
       return { scoreData: null, scoreUnavailable: true };
     }
   }, [regionalRisk, homeProfile]);
+
+  const hasPreparednessProfile = Boolean(selectedZipCode && regionalRisk && homeProfile);
+  const canSync = canSyncPreparednessProfile(preparednessSnapshot);
+  const autoSyncFingerprint = useMemo(
+    () =>
+      JSON.stringify({
+        selectedZipCode,
+        regionalRisk,
+        homeProfile,
+      }),
+    [homeProfile, regionalRisk, selectedZipCode]
+  );
+  const lastAutoSyncFingerprintRef = useRef("");
+
+  useEffect(() => {
+    if (selectedZipCode && regionalRisk && homeProfile) {
+      return;
+    }
+
+    let cancelled = false;
+
+    async function hydrateFromSupabase() {
+      try {
+        const remoteSnapshot = await fetchPreparednessSnapshotFromSupabase();
+
+        if (cancelled || !remoteSnapshot) {
+          return;
+        }
+
+        hydratePreparednessSnapshotToLocalStorage(remoteSnapshot);
+        lastAutoSyncFingerprintRef.current = JSON.stringify({
+          selectedZipCode: remoteSnapshot.selectedZipCode,
+          regionalRisk: remoteSnapshot.regionalRisk,
+          homeProfile: remoteSnapshot.homeProfile,
+        });
+        setPreparednessSnapshot({
+          selectedZipCode: remoteSnapshot.selectedZipCode ?? null,
+          regionalRisk: remoteSnapshot.regionalRisk ?? null,
+          homeProfile: remoteSnapshot.homeProfile ?? null,
+        });
+      } catch (error) {
+        if (!cancelled) {
+          console.warn("Unable to load preparedness profile from Supabase:", error);
+        }
+      }
+    }
+
+    void hydrateFromSupabase();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [homeProfile, regionalRisk, selectedZipCode]);
+
+  const handleSyncToSupabase = useCallback(async () => {
+    if (!hasPreparednessProfile) {
+      setSyncState({
+        status: "error",
+        message: "Complete the location and home profile before syncing to Supabase.",
+        syncedAt: null,
+      });
+      return;
+    }
+
+    setSyncState((currentState) => ({
+      ...currentState,
+      status: "syncing",
+      message: "Saving location, home profile, and score summary to Supabase...",
+    }));
+
+    try {
+      const result = await syncPreparednessProfileToSupabase(preparednessSnapshot);
+
+      if (!result.ok) {
+        setSyncState({
+          status: "warning",
+          message: result.message,
+          syncedAt: null,
+        });
+        return;
+      }
+
+      setSyncState({
+        status: "success",
+        message:
+          "Saved to Supabase tables: user_profiles, location_profiles, home_profiles, readiness_score_snapshots.",
+        syncedAt: result.syncedAt,
+      });
+    } catch (error) {
+      setSyncState({
+        status: "error",
+        message:
+          error instanceof Error
+            ? error.message
+            : "Supabase sync failed. Check your table schema and RLS policies.",
+        syncedAt: null,
+      });
+    }
+  }, [hasPreparednessProfile, preparednessSnapshot]);
+
+  useEffect(() => {
+    if (!hasPreparednessProfile || !canSync) {
+      return;
+    }
+
+    if (lastAutoSyncFingerprintRef.current === autoSyncFingerprint) {
+      return;
+    }
+
+    lastAutoSyncFingerprintRef.current = autoSyncFingerprint;
+    void handleSyncToSupabase();
+  }, [autoSyncFingerprint, canSync, handleSyncToSupabase, hasPreparednessProfile]);
 
   if (!homeProfile || !regionalRisk) {
     return (
@@ -349,9 +439,7 @@ export default function UserInfo() {
             <section className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
               <h2 className="text-xl">Location summary</h2>
               <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                <div
-                  className="rounded-xl border border-stone-200 bg-stone-50 p-4"
-                >
+                <div className="rounded-xl border border-stone-200 bg-stone-50 p-4">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-500">
                     ZIP code
                   </p>
@@ -364,10 +452,7 @@ export default function UserInfo() {
                   const style = getRiskCardStyle(regionalRisk, risk.key);
 
                   return (
-                    <div
-                      key={risk.key}
-                      className={`rounded-xl border p-4 ${style.className}`}
-                    >
+                    <div key={risk.key} className={`rounded-xl border p-4 ${style.className}`}>
                       <div className="flex items-start justify-between gap-3">
                         <p
                           className={`text-[10px] font-semibold uppercase tracking-[0.16em] ${style.labelClassName}`}
@@ -389,7 +474,61 @@ export default function UserInfo() {
               </div>
             </section>
 
-            <HomePhotoUploadGrid />
+            <section className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-stone-400">
+                    Supabase sync
+                  </p>
+                  <h2 className="mt-1 text-xl">Pre-disaster profile export</h2>
+                </div>
+                <span className="text-xs text-stone-400">
+                  {canSync ? "Ready to sync" : "Supabase env missing or profile incomplete"}
+                </span>
+              </div>
+
+              <p className="mt-4 max-w-3xl text-sm leading-6 text-stone-600">
+                This page only syncs your location, regional risk, home questionnaire answers, and
+                readiness score summary. Recovery and disaster workflow data stay out of this
+                export.
+              </p>
+
+              <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+                <button
+                  type="button"
+                  onClick={handleSyncToSupabase}
+                  disabled={!canSync || syncState.status === "syncing"}
+                  className="inline-flex items-center justify-center rounded-full bg-emerald-700 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-stone-300"
+                >
+                  {syncState.status === "syncing" ? "Syncing..." : "Save to Supabase"}
+                </button>
+                <div className="rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm text-stone-600">
+                  <p className="font-medium text-stone-900">Tables used</p>
+                  <p className="mt-1 text-xs leading-5">
+                    user_profiles, location_profiles, home_profiles, readiness_score_snapshots
+                  </p>
+                </div>
+              </div>
+
+              <div
+                className={`mt-5 rounded-xl border px-4 py-3 text-sm leading-6 ${
+                  syncState.status === "success"
+                    ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+                    : syncState.status === "warning"
+                      ? "border-amber-200 bg-amber-50 text-amber-900"
+                      : syncState.status === "error"
+                        ? "border-red-200 bg-red-50 text-red-900"
+                        : "border-stone-200 bg-stone-50 text-stone-600"
+                }`}
+              >
+                {syncState.message || "Supabase sync status will appear here."}
+                {syncState.syncedAt ? (
+                  <p className="mt-1 text-xs uppercase tracking-[0.14em]">
+                    Last synced {new Date(syncState.syncedAt).toLocaleString()}
+                  </p>
+                ) : null}
+              </div>
+            </section>
 
             <section className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
@@ -411,10 +550,7 @@ export default function UserInfo() {
               ) : (
                 <div className="mt-5 grid gap-3 md:grid-cols-2">
                   {homeProfileEntries.map(([key, value]) => (
-                    <div
-                      key={key}
-                      className="rounded-xl border border-stone-200 bg-stone-50 p-4"
-                    >
+                    <div key={key} className="rounded-xl border border-stone-200 bg-stone-50 p-4">
                       <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-500">
                         {formatLabel(key)}
                       </p>

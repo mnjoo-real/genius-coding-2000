@@ -4,6 +4,11 @@ import ProgressStepper from '../components/layout/ProgressStepper';
 import QuestionCard from '../components/questionnaire/QuestionCard';
 import Button from '../components/ui/Button';
 import { homeQuestions } from '../data/homeQuestions';
+import {
+  fetchPreparednessSnapshotFromSupabase,
+  hydratePreparednessSnapshotToLocalStorage,
+  syncPreparednessProfileToSupabase,
+} from '../services/userInfoSyncService';
 
 const STEPS = [
   { label: 'Location' },
@@ -53,7 +58,35 @@ export default function HomeQuestionnaire() {
   useEffect(() => {
     const rawProfile = localStorage.getItem('homeProfile');
     const parsedProfile = safeParseObject(rawProfile);
-    setSavedProfile(parsedProfile);
+
+    if (parsedProfile) {
+      setSavedProfile(parsedProfile);
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadFromSupabase() {
+      try {
+        const remoteSnapshot = await fetchPreparednessSnapshotFromSupabase();
+        if (cancelled || !remoteSnapshot?.homeProfile) {
+          return;
+        }
+
+        hydratePreparednessSnapshotToLocalStorage(remoteSnapshot);
+        setSavedProfile(remoteSnapshot.homeProfile);
+      } catch (error) {
+        if (!cancelled) {
+          console.warn('Unable to load saved home profile from Supabase:', error);
+        }
+      }
+    }
+
+    void loadFromSupabase();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -83,6 +116,9 @@ export default function HomeQuestionnaire() {
     const homeProfile = { ...answers, savedAt: new Date().toISOString() };
     localStorage.setItem('homeProfile', JSON.stringify(homeProfile));
     setSavedProfile(homeProfile);
+    void syncPreparednessProfileToSupabase().catch((error) => {
+      console.warn('Unable to sync preparedness profile to Supabase:', error);
+    });
     navigate('/dashboard');
   }
 
