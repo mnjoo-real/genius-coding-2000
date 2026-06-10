@@ -5,12 +5,20 @@ export default function Footbar() {
 
         <div className="flex flex-col gap-1">
           <span className="font-display text-base text-forest">Canopy</span>
-          <span className="text-sm text-stone-500">Eco-focused home resilience for the risks ahead.</span>
+          <span className="text-sm text-stone-500">
+            Eco-focused home resilience for the risks ahead.
+          </span>
         </div>
 
         <nav aria-label="Footer links" className="flex items-center gap-5">
-          <a href="/about" className="text-sm text-stone-500 hover:text-forest no-underline transition-fast">About</a>
-          <a href="https://github.com/mnjoo-real/genius-coding-2000" className="text-sm text-stone-500 hover:text-forest no-underline transition-fast" target="_blank" rel="noreferrer">GitHub</a>
+          <a
+            href="https://github.com/mnjoo-real/genius-coding-2000"
+            className="text-sm text-stone-500 hover:text-forest no-underline transition-fast"
+            target="_blank"
+            rel="noreferrer"
+          >
+            GitHub
+          </a>
         </nav>
 
       </div>
