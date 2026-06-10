@@ -321,30 +321,20 @@ export default function Recovery() {
         ) : null}
 
         <section className="rounded-3xl border border-sky-200 bg-sky-50/60 p-6 shadow-sm">
-          <div className="flex flex-col gap-3">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-700">
-                FEMA Assistance Estimate
-              </p>
-              <h2 className="mt-2 text-2xl font-semibold text-stone-900">
-                FEMA Assistance Estimate
-              </h2>
-              <p className="mt-3 max-w-3xl text-sm leading-6 text-stone-600">
-                Estimate a historical FEMA IHP assistance range based on similar past cases.
-              </p>
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-700">
+                  FEMA Assistance Estimate
+                </p>
+                <h2 className="mt-2 text-2xl font-semibold text-stone-900">
+                  FEMA Assistance Estimate
+                </h2>
+                <p className="mt-3 max-w-3xl text-sm leading-6 text-stone-600">
+                  Estimate a FEMA IHP range from similar historical cases.
+                </p>
+              </div>
             </div>
-
-            <FemaAssistanceEstimateForm
-              values={femaEstimatorAnswers}
-              onChange={handleFemaEstimatorChange}
-              onSubmit={handleFemaEstimatorSubmit}
-              isSubmitting={femaEstimateLoading}
-            />
-
-            <p className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-900">
-              This estimate is based on historical FEMA Individuals and Households Program
-              records. It is not a guarantee of FEMA eligibility or payment.
-            </p>
 
             {femaEstimateError ? (
               <p className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium leading-6 text-rose-700">
@@ -352,113 +342,83 @@ export default function Recovery() {
               </p>
             ) : null}
 
-            {femaEstimateResult ? (
-              <section className="rounded-3xl border border-stone-200 bg-white p-6 shadow-sm">
-                <div className="flex flex-col gap-2 border-b border-stone-100 pb-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
-                    Estimate Result
-                  </p>
-                  <h3 className="text-xl font-semibold text-stone-900">Estimated FEMA IHP range</h3>
-                  <p className="text-sm leading-6 text-stone-600">
-                    Match level: <span className="font-semibold text-stone-900">{femaEstimateResult.matchLevel || "none"}</span>
-                  </p>
-                </div>
-
-                <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                  <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
-                    <p className="text-xs font-medium uppercase tracking-[0.2em] text-stone-500">
-                      Estimated low
-                    </p>
-                    <p className="mt-2 text-lg font-semibold text-stone-900">
-                      {formatMoney(femaEstimateResult.estimatedLow)}
-                    </p>
-                  </div>
-                  <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
-                    <p className="text-xs font-medium uppercase tracking-[0.2em] text-stone-500">
-                      Estimated median
-                    </p>
-                    <p className="mt-2 text-lg font-semibold text-stone-900">
-                      {formatMoney(femaEstimateResult.estimatedMedian)}
-                    </p>
-                  </div>
-                  <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
-                    <p className="text-xs font-medium uppercase tracking-[0.2em] text-stone-500">
-                      Estimated high
-                    </p>
-                    <p className="mt-2 text-lg font-semibold text-stone-900">
-                      {formatMoney(femaEstimateResult.estimatedHigh)}
-                    </p>
-                  </div>
-                  <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
-                    <p className="text-xs font-medium uppercase tracking-[0.2em] text-stone-500">
-                      Eligibility rate
-                    </p>
-                    <p className="mt-2 text-lg font-semibold text-stone-900">
-                      {formatRate(femaEstimateResult.eligibilityRate)}
-                    </p>
-                  </div>
-                  <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
-                    <p className="text-xs font-medium uppercase tracking-[0.2em] text-stone-500">
-                      Sample size
-                    </p>
-                    <p className="mt-2 text-lg font-semibold text-stone-900">
-                      {femaEstimateResult.sampleSize ?? "No match"}
-                    </p>
-                  </div>
-                  <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
-                    <p className="text-xs font-medium uppercase tracking-[0.2em] text-stone-500">
-                      Match level
-                    </p>
-                    <p className="mt-2 text-lg font-semibold text-stone-900">
-                      {femaEstimateResult.matchLevel || "none"}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                  <div className="rounded-2xl border border-stone-200 bg-white p-4">
-                    <p className="text-xs font-medium uppercase tracking-[0.2em] text-stone-500">
-                      Housing
-                    </p>
-                    <p className="mt-2 text-sm font-semibold text-stone-900">
-                      {formatMoney(femaEstimateResult.assistanceBreakdown?.housing)}
-                    </p>
-                  </div>
-                  <div className="rounded-2xl border border-stone-200 bg-white p-4">
-                    <p className="text-xs font-medium uppercase tracking-[0.2em] text-stone-500">
-                      Other needs
-                    </p>
-                    <p className="mt-2 text-sm font-semibold text-stone-900">
-                      {formatMoney(femaEstimateResult.assistanceBreakdown?.otherNeeds)}
-                    </p>
-                  </div>
-                  <div className="rounded-2xl border border-stone-200 bg-white p-4">
-                    <p className="text-xs font-medium uppercase tracking-[0.2em] text-stone-500">
-                      Rental
-                    </p>
-                    <p className="mt-2 text-sm font-semibold text-stone-900">
-                      {formatMoney(femaEstimateResult.assistanceBreakdown?.rental)}
-                    </p>
-                  </div>
-                  <div className="rounded-2xl border border-stone-200 bg-white p-4">
-                    <p className="text-xs font-medium uppercase tracking-[0.2em] text-stone-500">
-                      Repair
-                    </p>
-                    <p className="mt-2 text-sm font-semibold text-stone-900">
-                      {formatMoney(femaEstimateResult.assistanceBreakdown?.repair)}
-                    </p>
-                  </div>
-                  <div className="rounded-2xl border border-stone-200 bg-white p-4">
-                    <p className="text-xs font-medium uppercase tracking-[0.2em] text-stone-500">
-                      Personal property
-                    </p>
-                    <p className="mt-2 text-sm font-semibold text-stone-900">
-                      {formatMoney(femaEstimateResult.assistanceBreakdown?.personalProperty)}
-                    </p>
-                  </div>
-                </div>
+            <div className={`flex flex-col gap-6 ${femaEstimateResult ? "lg:flex-row" : ""}`}>
+              <section className={femaEstimateResult ? "lg:flex-[1.15] min-w-0" : "w-full"}>
+                <FemaAssistanceEstimateForm
+                  values={femaEstimatorAnswers}
+                  onChange={handleFemaEstimatorChange}
+                  onSubmit={handleFemaEstimatorSubmit}
+                  isSubmitting={femaEstimateLoading}
+                />
               </section>
-            ) : null}
+
+              {femaEstimateResult ? (
+                <section className="rounded-3xl border border-stone-200 bg-white p-6 shadow-sm lg:flex-[0.85] min-w-0">
+                  <div className="flex items-start justify-between gap-4 border-b border-stone-100 pb-4">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
+                        Estimate Result
+                      </p>
+                      <h3 className="mt-2 text-xl font-semibold text-stone-900">
+                        FEMA IHP estimate
+                      </h3>
+                    </div>
+                    <div className="group relative">
+                      <button
+                        type="button"
+                        aria-describedby="fema-estimate-disclaimer"
+                        className="flex h-7 w-7 items-center justify-center rounded-full border border-amber-300 bg-amber-100 text-sm font-bold text-amber-800 shadow-sm transition-colors hover:bg-amber-200 focus:outline-none focus:ring-2 focus:ring-amber-300"
+                      >
+                        !
+                      </button>
+                      <p
+                        id="fema-estimate-disclaimer"
+                        role="tooltip"
+                        className="pointer-events-none absolute right-0 top-9 z-10 w-72 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-950 opacity-0 shadow-lg transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
+                      >
+                        This estimate is based on historical FEMA Individuals and Households
+                        Program records. It is not a guarantee of FEMA eligibility or payment.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                    <div className="rounded-2xl border border-emerald-100 bg-emerald-50/70 p-4">
+                      <p className="text-xs font-medium uppercase tracking-[0.2em] text-emerald-700">
+                        Eligibility rate
+                      </p>
+                      <p className="mt-2 text-lg font-semibold text-stone-950">
+                        {formatRate(femaEstimateResult.eligibilityRate)}
+                      </p>
+                    </div>
+                    <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
+                      <p className="text-xs font-medium uppercase tracking-[0.2em] text-stone-500">
+                        Estimated low
+                      </p>
+                      <p className="mt-2 text-lg font-semibold text-stone-900">
+                        {formatMoney(femaEstimateResult.estimatedLow)}
+                      </p>
+                    </div>
+                    <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
+                      <p className="text-xs font-medium uppercase tracking-[0.2em] text-stone-500">
+                        Estimated median
+                      </p>
+                      <p className="mt-2 text-lg font-semibold text-stone-900">
+                        {formatMoney(femaEstimateResult.estimatedMedian)}
+                      </p>
+                    </div>
+                    <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
+                      <p className="text-xs font-medium uppercase tracking-[0.2em] text-stone-500">
+                        Estimated high
+                      </p>
+                      <p className="mt-2 text-lg font-semibold text-stone-900">
+                        {formatMoney(femaEstimateResult.estimatedHigh)}
+                      </p>
+                    </div>
+                  </div>
+                </section>
+              ) : null}
+            </div>
           </div>
         </section>
 

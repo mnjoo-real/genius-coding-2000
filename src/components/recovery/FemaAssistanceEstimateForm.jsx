@@ -1,4 +1,5 @@
 import { useState } from "react";
+import ProgressStepper from "../layout/ProgressStepper";
 import { femaEstimatorQuestions } from "../../data/femaEstimatorQuestions";
 
 const REQUIRED_FIELDS = new Set([
@@ -9,6 +10,37 @@ const REQUIRED_FIELDS = new Set([
   "homeDamage",
   "floodDamage",
 ]);
+
+const FORM_STEPS = [
+  {
+    id: "location",
+    title: "Location",
+    description: "Start with where the damaged home is located.",
+    questionIds: ["zipCode", "state", "county"],
+    requiredIds: ["zipCode"],
+  },
+  {
+    id: "housing",
+    title: "Housing",
+    description: "Tell us whether the home was owned or rented.",
+    questionIds: ["ownRent"],
+    requiredIds: ["ownRent"],
+  },
+  {
+    id: "household",
+    title: "Household",
+    description: "Estimate the household's size and income range.",
+    questionIds: ["grossIncome", "householdComposition"],
+    requiredIds: ["grossIncome", "householdComposition"],
+  },
+  {
+    id: "damage",
+    title: "Damage",
+    description: "Confirm the type of disaster damage that occurred.",
+    questionIds: ["homeDamage", "floodDamage"],
+    requiredIds: ["homeDamage", "floodDamage"],
+  },
+];
 
 function normalizeValues(values) {
   return values && typeof values === "object" && !Array.isArray(values) ? values : {};
@@ -48,7 +80,10 @@ function buildErrors(values) {
   REQUIRED_FIELDS.forEach((fieldId) => {
     const value = values[fieldId];
     const isMissing =
-      value === undefined || value === null || value === "" || (typeof value === "number" && Number.isNaN(value));
+      value === undefined ||
+      value === null ||
+      value === "" ||
+      (typeof value === "number" && Number.isNaN(value));
 
     if (isMissing) {
       errors[fieldId] = "This field is required.";
@@ -67,22 +102,59 @@ export default function FemaAssistanceEstimateForm({
   const currentValues = normalizeValues(values);
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState(new Set());
+  const [activeStepIndex, setActiveStepIndex] = useState(0);
+
+  const currentStep = FORM_STEPS[activeStepIndex] ?? FORM_STEPS[0];
+  const currentStepQuestions = femaEstimatorQuestions.filter((question) =>
+    currentStep.questionIds.includes(question.id)
+  );
+  const isFinalStep = activeStepIndex === FORM_STEPS.length - 1;
+  const stepperSteps = FORM_STEPS.map((step) => ({ label: step.title }));
 
   const handleFieldChange = (fieldId, nextValue) => {
-    onChange?.({
+    const nextValues = {
       ...currentValues,
       [fieldId]: nextValue,
-    });
+    };
+
+    onChange?.(nextValues);
+    setErrors(buildErrors(nextValues));
   };
 
   const handleBlur = (fieldId) => {
     setTouched((previousTouched) => new Set(previousTouched).add(fieldId));
-    const nextErrors = buildErrors(currentValues);
-    setErrors(nextErrors);
+    setErrors(buildErrors(currentValues));
+  };
+
+  const handleBack = () => {
+    setActiveStepIndex((currentStepIndex) => Math.max(currentStepIndex - 1, 0));
   };
 
   const handleSubmit = (event) => {
     event.preventDefault();
+
+    if (!isFinalStep) {
+      const nextErrors = buildErrors(currentValues);
+      const nextTouched = new Set(touched);
+
+      currentStep.requiredIds.forEach((fieldId) => {
+        nextTouched.add(fieldId);
+      });
+
+      setErrors(nextErrors);
+      setTouched(nextTouched);
+
+      const hasStepErrors = currentStep.requiredIds.some((fieldId) => nextErrors[fieldId]);
+
+      if (hasStepErrors) {
+        return;
+      }
+
+      setActiveStepIndex((currentStepIndex) =>
+        Math.min(currentStepIndex + 1, FORM_STEPS.length - 1)
+      );
+      return;
+    }
 
     const nextErrors = buildErrors(currentValues);
     setErrors(nextErrors);
@@ -98,10 +170,14 @@ export default function FemaAssistanceEstimateForm({
   const renderTextField = (question) => {
     const value = currentValues[question.id];
     const error = touched.has(question.id) ? errors[question.id] : "";
+    const isOptional = !REQUIRED_FIELDS.has(question.id);
 
     return (
       <label key={question.id} className="grid gap-2">
-        <span className="text-sm font-medium text-stone-700">{question.label}</span>
+        <span className="text-sm font-medium text-stone-700">
+          {question.label}
+          {isOptional ? <span className="ml-2 text-xs font-semibold text-stone-400">Optional</span> : null}
+        </span>
         {question.helperText ? (
           <p className="text-sm leading-6 text-stone-500">{question.helperText}</p>
         ) : null}
@@ -206,42 +282,88 @@ export default function FemaAssistanceEstimateForm({
   return (
     <section className="overflow-hidden rounded-3xl border border-stone-200 bg-white shadow-sm">
       <div className="border-b border-stone-100 px-6 py-5">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
-          Recovery Center
-        </p>
-        <h2 className="mt-2 text-2xl font-semibold text-stone-900">FEMA Assistance Estimate</h2>
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-stone-600">
-          Enter details about the damaged home to estimate FEMA IHP assistance. Required fields
-          are validated before the form is submitted.
-        </p>
+        <div className="space-y-5">
+          <div className="flex flex-col gap-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
+                Recovery Center
+              </p>
+              <h2 className="mt-2 text-2xl font-semibold text-stone-900">
+                FEMA Assistance Estimate
+              </h2>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-stone-600">
+                Answer the questionnaire one step at a time. We validate each section before moving
+                forward and only submit when the full profile is complete.
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-4 sm:px-5">
+              <ProgressStepper steps={stepperSteps} currentStep={activeStepIndex} />
+            </div>
+          </div>
+        </div>
       </div>
 
       <form onSubmit={handleSubmit} className="grid gap-6 p-6">
-        {femaEstimatorQuestions.map((question) => {
-          if (question.type === "text") {
-            return renderTextField(question);
-          }
+        <div className="grid gap-6 rounded-3xl border border-stone-200 bg-stone-50/60 p-5 sm:p-6">
+          {currentStepQuestions.map((question) => {
+            const isOptional = !REQUIRED_FIELDS.has(question.id);
+            const hasBooleanOptions =
+              question.type === "single" &&
+              Array.isArray(question.options) &&
+              question.options.some(isBooleanOption);
 
-          if (question.type === "single") {
-            const hasBooleanOptions = Array.isArray(question.options) && question.options.some(isBooleanOption);
-            return hasBooleanOptions ? renderBooleanField(question) : renderSelectField(question);
-          }
+            return (
+              <div key={question.id} className="grid gap-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">
+                    {currentStep.title}
+                  </span>
+                  {isOptional ? (
+                    <span className="rounded-full border border-stone-200 bg-white px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-500">
+                      Optional
+                    </span>
+                  ) : (
+                    <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-700">
+                      Required
+                    </span>
+                  )}
+                </div>
 
-          return null;
-        })}
+                {question.type === "text"
+                  ? renderTextField(question)
+                  : hasBooleanOptions
+                    ? renderBooleanField(question)
+                    : renderSelectField(question)}
+              </div>
+            );
+          })}
+        </div>
 
         <div className="flex flex-col gap-3 border-t border-stone-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm leading-6 text-stone-500">
-            Required fields: ZIP code, ownership, income range, household size, home damage, and
-            flood damage.
+            Required fields are checked before each step advances.
           </p>
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="inline-flex items-center justify-center rounded-full bg-emerald-700 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-emerald-300"
-          >
-            {isSubmitting ? "Estimating..." : "Estimate Assistance"}
-          </button>
+
+          <div className="flex flex-col gap-3 sm:flex-row">
+            {activeStepIndex > 0 ? (
+              <button
+                type="button"
+                onClick={handleBack}
+                className="inline-flex items-center justify-center rounded-full border border-stone-200 bg-white px-5 py-3 text-sm font-semibold text-stone-800 transition-colors hover:border-stone-300 hover:bg-stone-50"
+              >
+                Back
+              </button>
+            ) : null}
+
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="inline-flex items-center justify-center rounded-full bg-emerald-700 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-emerald-300"
+            >
+              {isSubmitting ? "Estimating..." : isFinalStep ? "Estimate Assistance" : "Continue"}
+            </button>
+          </div>
         </div>
       </form>
     </section>
