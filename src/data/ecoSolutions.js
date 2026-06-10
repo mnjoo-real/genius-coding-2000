@@ -1,5 +1,6 @@
 // Mock action-plan data for MVP testing.
 // Estimated costs and score increases are rule-based estimates, not official values.
+// scoreIncrease is a legacy fallback; category-based recommendation logic should prefer affects.
 
 export const ecoSolutions = [
   {
@@ -15,6 +16,16 @@ export const ecoSolutions = [
     costLevel: "Medium",
     impactLevel: "High",
     scoreIncrease: 8,
+    affects: {
+      homeVulnerability: 8,
+      ecoMitigation: 6,
+    },
+    priority: "soon",
+    relatedWeaknesses: [
+      "Water pooling near the home increases flood and foundation risk.",
+      "High paved surface coverage can worsen stormwater runoff.",
+      "Few existing eco-mitigation features were reported.",
+    ],
   },
   {
     id: "bioswale",
@@ -29,6 +40,16 @@ export const ecoSolutions = [
     costLevel: "High",
     impactLevel: "High",
     scoreIncrease: 7,
+    affects: {
+      homeVulnerability: 7,
+      ecoMitigation: 7,
+    },
+    priority: "soon",
+    relatedWeaknesses: [
+      "Water pooling near the home increases flood and foundation risk.",
+      "High paved surface coverage can worsen stormwater runoff.",
+      "Few existing eco-mitigation features were reported.",
+    ],
   },
   {
     id: "downspoutRedirection",
@@ -43,6 +64,16 @@ export const ecoSolutions = [
     costLevel: "Low",
     impactLevel: "Medium",
     scoreIncrease: 6,
+    affects: {
+      homeVulnerability: 6,
+      ecoMitigation: 4,
+    },
+    priority: "now",
+    relatedWeaknesses: [
+      "Water pooling near the home increases flood and foundation risk.",
+      "Basement or crawl space may increase flood vulnerability.",
+      "Few existing eco-mitigation features were reported.",
+    ],
   },
   {
     id: "downspoutExtensions",
@@ -57,6 +88,15 @@ export const ecoSolutions = [
     costLevel: "Low",
     impactLevel: "Medium",
     scoreIncrease: 4,
+    affects: {
+      homeVulnerability: 5,
+      ecoMitigation: 3,
+    },
+    priority: "now",
+    relatedWeaknesses: [
+      "Water pooling near the home increases flood and foundation risk.",
+      "Basement or crawl space may increase flood vulnerability.",
+    ],
   },
   {
     id: "rainBarrel",
@@ -71,6 +111,15 @@ export const ecoSolutions = [
     costLevel: "Low",
     impactLevel: "Medium",
     scoreIncrease: 4,
+    affects: {
+      homeVulnerability: 3,
+      ecoMitigation: 5,
+    },
+    priority: "now",
+    relatedWeaknesses: [
+      "High paved surface coverage can worsen stormwater runoff.",
+      "Few existing eco-mitigation features were reported.",
+    ],
   },
   {
     id: "permeablePavers",
@@ -85,6 +134,16 @@ export const ecoSolutions = [
     costLevel: "High",
     impactLevel: "High",
     scoreIncrease: 7,
+    affects: {
+      homeVulnerability: 7,
+      ecoMitigation: 8,
+    },
+    priority: "later",
+    relatedWeaknesses: [
+      "High paved surface coverage can worsen stormwater runoff.",
+      "Water pooling near the home increases flood and foundation risk.",
+      "Few existing eco-mitigation features were reported.",
+    ],
   },
   {
     id: "gravelPath",
@@ -99,6 +158,15 @@ export const ecoSolutions = [
     costLevel: "Medium",
     impactLevel: "Medium",
     scoreIncrease: 4,
+    affects: {
+      homeVulnerability: 4,
+      ecoMitigation: 5,
+    },
+    priority: "soon",
+    relatedWeaknesses: [
+      "High paved surface coverage can worsen stormwater runoff.",
+      "Few existing eco-mitigation features were reported.",
+    ],
   },
   {
     id: "frenchDrain",
@@ -113,6 +181,16 @@ export const ecoSolutions = [
     costLevel: "High",
     impactLevel: "High",
     scoreIncrease: 7,
+    affects: {
+      homeVulnerability: 8,
+      ecoMitigation: 4,
+    },
+    priority: "later",
+    relatedWeaknesses: [
+      "Water pooling near the home increases flood and foundation risk.",
+      "Basement or crawl space may increase flood vulnerability.",
+      "No recent home energy or drainage audit was reported.",
+    ],
   },
   {
     id: "sumpPump",
@@ -127,6 +205,14 @@ export const ecoSolutions = [
     costLevel: "Medium",
     impactLevel: "Medium",
     scoreIncrease: 6,
+    affects: {
+      homeVulnerability: 7,
+    },
+    priority: "soon",
+    relatedWeaknesses: [
+      "Basement or crawl space may increase flood vulnerability.",
+      "Water pooling near the home increases flood and foundation risk.",
+    ],
   },
   {
     id: "basementSealing",
@@ -141,6 +227,15 @@ export const ecoSolutions = [
     costLevel: "Medium",
     impactLevel: "Medium",
     scoreIncrease: 5,
+    affects: {
+      homeVulnerability: 6,
+    },
+    priority: "soon",
+    relatedWeaknesses: [
+      "Basement or crawl space may increase flood vulnerability.",
+      "Water pooling near the home increases flood and foundation risk.",
+      "Older homes may need structural and efficiency upgrades.",
+    ],
   },
   {
     id: "nativeGroundCover",
@@ -155,6 +250,16 @@ export const ecoSolutions = [
     costLevel: "Medium",
     impactLevel: "Medium",
     scoreIncrease: 5,
+    affects: {
+      homeVulnerability: 4,
+      ecoMitigation: 6,
+    },
+    priority: "soon",
+    relatedWeaknesses: [
+      "High paved surface coverage can worsen stormwater runoff.",
+      "Water pooling near the home increases flood and foundation risk.",
+      "Few existing eco-mitigation features were reported.",
+    ],
   },
   {
     id: "nativePlantLawnReplacement",
@@ -169,6 +274,16 @@ export const ecoSolutions = [
     costLevel: "Medium",
     impactLevel: "Medium",
     scoreIncrease: 5,
+    affects: {
+      homeVulnerability: 4,
+      ecoMitigation: 7,
+    },
+    priority: "soon",
+    relatedWeaknesses: [
+      "High paved surface coverage can worsen stormwater runoff.",
+      "Dense surroundings can increase heat and drainage stress.",
+      "Few existing eco-mitigation features were reported.",
+    ],
   },
   {
     id: "clearDefensibleSpaceZone1",
@@ -183,6 +298,15 @@ export const ecoSolutions = [
     costLevel: "Free",
     impactLevel: "High",
     scoreIncrease: 10,
+    affects: {
+      homeVulnerability: 8,
+      ecoMitigation: 4,
+    },
+    priority: "now",
+    relatedWeaknesses: [
+      "Dry vegetation close to the home increases wildfire vulnerability.",
+      "Few existing eco-mitigation features were reported.",
+    ],
   },
   {
     id: "thinVegetationZone2",
@@ -197,6 +321,15 @@ export const ecoSolutions = [
     costLevel: "Medium",
     impactLevel: "High",
     scoreIncrease: 7,
+    affects: {
+      homeVulnerability: 7,
+      ecoMitigation: 5,
+    },
+    priority: "soon",
+    relatedWeaknesses: [
+      "Dry vegetation close to the home increases wildfire vulnerability.",
+      "Large nearby trees or overhanging branches may increase storm damage risk.",
+    ],
   },
   {
     id: "removeDeadBranches",
@@ -211,6 +344,15 @@ export const ecoSolutions = [
     costLevel: "Free",
     impactLevel: "Medium",
     scoreIncrease: 5,
+    affects: {
+      homeVulnerability: 5,
+      ecoMitigation: 3,
+    },
+    priority: "now",
+    relatedWeaknesses: [
+      "Large nearby trees or overhanging branches may increase storm damage risk.",
+      "Dry vegetation close to the home increases wildfire vulnerability.",
+    ],
   },
   {
     id: "trimTreeBranches",
@@ -225,6 +367,15 @@ export const ecoSolutions = [
     costLevel: "Medium",
     impactLevel: "Medium",
     scoreIncrease: 5,
+    affects: {
+      homeVulnerability: 5,
+      ecoMitigation: 4,
+    },
+    priority: "soon",
+    relatedWeaknesses: [
+      "Large nearby trees or overhanging branches may increase storm damage risk.",
+      "Dry vegetation close to the home increases wildfire vulnerability.",
+    ],
   },
   {
     id: "emberResistantVents",
@@ -239,6 +390,15 @@ export const ecoSolutions = [
     costLevel: "Medium",
     impactLevel: "High",
     scoreIncrease: 7,
+    affects: {
+      homeVulnerability: 8,
+    },
+    priority: "soon",
+    relatedWeaknesses: [
+      "Roof material may be vulnerable to wind, heat, or wildfire exposure.",
+      "Basement or crawl space may increase flood vulnerability.",
+      "Dry vegetation close to the home increases wildfire vulnerability.",
+    ],
   },
   {
     id: "cleanGutters",
@@ -253,6 +413,16 @@ export const ecoSolutions = [
     costLevel: "Free",
     impactLevel: "Medium",
     scoreIncrease: 4,
+    affects: {
+      homeVulnerability: 4,
+      ecoMitigation: 3,
+    },
+    priority: "now",
+    relatedWeaknesses: [
+      "Roof material may be vulnerable to wind, heat, or wildfire exposure.",
+      "Dry vegetation close to the home increases wildfire vulnerability.",
+      "Water pooling near the home increases flood and foundation risk.",
+    ],
   },
   {
     id: "fireResistantLandscaping",
@@ -267,6 +437,15 @@ export const ecoSolutions = [
     costLevel: "Medium",
     impactLevel: "Medium",
     scoreIncrease: 6,
+    affects: {
+      homeVulnerability: 5,
+      ecoMitigation: 6,
+    },
+    priority: "soon",
+    relatedWeaknesses: [
+      "Dry vegetation close to the home increases wildfire vulnerability.",
+      "Few existing eco-mitigation features were reported.",
+    ],
   },
   {
     id: "moveWoodpile",
@@ -281,6 +460,13 @@ export const ecoSolutions = [
     costLevel: "Free",
     impactLevel: "Low",
     scoreIncrease: 3,
+    affects: {
+      homeVulnerability: 3,
+    },
+    priority: "now",
+    relatedWeaknesses: [
+      "Dry vegetation close to the home increases wildfire vulnerability.",
+    ],
   },
   {
     id: "hurricaneShutters",
@@ -295,6 +481,13 @@ export const ecoSolutions = [
     costLevel: "High",
     impactLevel: "High",
     scoreIncrease: 8,
+    affects: {
+      homeVulnerability: 8,
+    },
+    priority: "later",
+    relatedWeaknesses: [
+      "Windows and doors may need stronger storm protection.",
+    ],
   },
   {
     id: "impactResistantWindows",
@@ -309,6 +502,15 @@ export const ecoSolutions = [
     costLevel: "High",
     impactLevel: "High",
     scoreIncrease: 8,
+    affects: {
+      homeVulnerability: 8,
+      ecoMitigation: 3,
+    },
+    priority: "later",
+    relatedWeaknesses: [
+      "Windows and doors may need stronger storm protection.",
+      "Older homes may need structural and efficiency upgrades.",
+    ],
   },
   {
     id: "reinforceGarageDoor",
@@ -323,6 +525,13 @@ export const ecoSolutions = [
     costLevel: "High",
     impactLevel: "Medium",
     scoreIncrease: 6,
+    affects: {
+      homeVulnerability: 6,
+    },
+    priority: "later",
+    relatedWeaknesses: [
+      "Older homes may need structural and efficiency upgrades.",
+    ],
   },
   {
     id: "roofToWallStraps",
@@ -337,6 +546,14 @@ export const ecoSolutions = [
     costLevel: "High",
     impactLevel: "High",
     scoreIncrease: 7,
+    affects: {
+      homeVulnerability: 8,
+    },
+    priority: "later",
+    relatedWeaknesses: [
+      "Roof material may be vulnerable to wind, heat, or wildfire exposure.",
+      "Older homes may need structural and efficiency upgrades.",
+    ],
   },
   {
     id: "trimLargeTrees",
@@ -351,6 +568,14 @@ export const ecoSolutions = [
     costLevel: "Medium",
     impactLevel: "Medium",
     scoreIncrease: 6,
+    affects: {
+      homeVulnerability: 6,
+      ecoMitigation: 3,
+    },
+    priority: "soon",
+    relatedWeaknesses: [
+      "Large nearby trees or overhanging branches may increase storm damage risk.",
+    ],
   },
   {
     id: "nativeWindbreakTrees",
@@ -365,6 +590,16 @@ export const ecoSolutions = [
     costLevel: "Medium",
     impactLevel: "Medium",
     scoreIncrease: 5,
+    affects: {
+      homeVulnerability: 4,
+      ecoMitigation: 6,
+    },
+    priority: "soon",
+    relatedWeaknesses: [
+      "Dense surroundings can increase heat and drainage stress.",
+      "Few existing eco-mitigation features were reported.",
+      "Large nearby trees or overhanging branches may increase storm damage risk.",
+    ],
   },
   {
     id: "anchorOutdoorObjects",
@@ -379,6 +614,15 @@ export const ecoSolutions = [
     costLevel: "Free",
     impactLevel: "Low",
     scoreIncrease: 3,
+    affects: {
+      homeVulnerability: 3,
+      recoveryPreparedness: 3,
+    },
+    priority: "now",
+    relatedWeaknesses: [
+      "Household emergency plan is missing or informal.",
+      "Emergency kit readiness is incomplete.",
+    ],
   },
   {
     id: "shadeTrees",
@@ -393,6 +637,15 @@ export const ecoSolutions = [
     costLevel: "Medium",
     impactLevel: "Medium",
     scoreIncrease: 6,
+    affects: {
+      homeVulnerability: 5,
+      ecoMitigation: 7,
+    },
+    priority: "soon",
+    relatedWeaknesses: [
+      "Dense surroundings can increase heat and drainage stress.",
+      "Few existing eco-mitigation features were reported.",
+    ],
   },
   {
     id: "coolRoofCoating",
@@ -407,6 +660,16 @@ export const ecoSolutions = [
     costLevel: "Medium",
     impactLevel: "Medium",
     scoreIncrease: 5,
+    affects: {
+      homeVulnerability: 6,
+      ecoMitigation: 5,
+    },
+    priority: "soon",
+    relatedWeaknesses: [
+      "Roof material may be vulnerable to wind, heat, or wildfire exposure.",
+      "Dense surroundings can increase heat and drainage stress.",
+      "No recent home energy or drainage audit was reported.",
+    ],
   },
   {
     id: "atticInsulation",
@@ -421,6 +684,16 @@ export const ecoSolutions = [
     costLevel: "High",
     impactLevel: "Medium",
     scoreIncrease: 5,
+    affects: {
+      homeVulnerability: 6,
+      ecoMitigation: 5,
+    },
+    priority: "later",
+    relatedWeaknesses: [
+      "Older homes may need structural and efficiency upgrades.",
+      "Roof material may be vulnerable to wind, heat, or wildfire exposure.",
+      "No recent home energy or drainage audit was reported.",
+    ],
   },
   {
     id: "atticVentilation",
@@ -435,6 +708,15 @@ export const ecoSolutions = [
     costLevel: "Medium",
     impactLevel: "Medium",
     scoreIncrease: 5,
+    affects: {
+      homeVulnerability: 5,
+      ecoMitigation: 5,
+    },
+    priority: "soon",
+    relatedWeaknesses: [
+      "Roof material may be vulnerable to wind, heat, or wildfire exposure.",
+      "No recent home energy or drainage audit was reported.",
+    ],
   },
   {
     id: "windowShading",
@@ -449,6 +731,15 @@ export const ecoSolutions = [
     costLevel: "Medium",
     impactLevel: "Medium",
     scoreIncrease: 4,
+    affects: {
+      homeVulnerability: 4,
+      ecoMitigation: 4,
+    },
+    priority: "soon",
+    relatedWeaknesses: [
+      "Windows and doors may need stronger storm protection.",
+      "Dense surroundings can increase heat and drainage stress.",
+    ],
   },
   {
     id: "ceilingFans",
@@ -463,6 +754,15 @@ export const ecoSolutions = [
     costLevel: "Medium",
     impactLevel: "Low",
     scoreIncrease: 3,
+    affects: {
+      homeVulnerability: 3,
+      ecoMitigation: 3,
+    },
+    priority: "soon",
+    relatedWeaknesses: [
+      "Dense surroundings can increase heat and drainage stress.",
+      "No recent home energy or drainage audit was reported.",
+    ],
   },
   {
     id: "identifyCoolSpaces",
@@ -477,6 +777,14 @@ export const ecoSolutions = [
     costLevel: "Free",
     impactLevel: "Low",
     scoreIncrease: 2,
+    affects: {
+      recoveryPreparedness: 4,
+    },
+    priority: "now",
+    relatedWeaknesses: [
+      "Household emergency plan is missing or informal.",
+      "Local emergency alert registration may be missing.",
+    ],
   },
   {
     id: "insulatePipes",
@@ -491,6 +799,15 @@ export const ecoSolutions = [
     costLevel: "Low",
     impactLevel: "Medium",
     scoreIncrease: 6,
+    affects: {
+      homeVulnerability: 6,
+      ecoMitigation: 3,
+    },
+    priority: "now",
+    relatedWeaknesses: [
+      "Older homes may need structural and efficiency upgrades.",
+      "No recent home energy or drainage audit was reported.",
+    ],
   },
   {
     id: "knowWaterMainShutoff",
@@ -505,6 +822,14 @@ export const ecoSolutions = [
     costLevel: "Free",
     impactLevel: "Low",
     scoreIncrease: 3,
+    affects: {
+      recoveryPreparedness: 5,
+    },
+    priority: "now",
+    relatedWeaknesses: [
+      "Household emergency plan is missing or informal.",
+      "Emergency kit readiness is incomplete.",
+    ],
   },
   {
     id: "serviceFurnace",
@@ -519,6 +844,15 @@ export const ecoSolutions = [
     costLevel: "Low",
     impactLevel: "Medium",
     scoreIncrease: 4,
+    affects: {
+      homeVulnerability: 4,
+      ecoMitigation: 4,
+    },
+    priority: "now",
+    relatedWeaknesses: [
+      "Older homes may need structural and efficiency upgrades.",
+      "No recent home energy or drainage audit was reported.",
+    ],
   },
   {
     id: "emergencyHeatingBackup",
@@ -533,6 +867,14 @@ export const ecoSolutions = [
     costLevel: "Medium",
     impactLevel: "Medium",
     scoreIncrease: 4,
+    affects: {
+      recoveryPreparedness: 5,
+    },
+    priority: "soon",
+    relatedWeaknesses: [
+      "Emergency kit readiness is incomplete.",
+      "Household emergency plan is missing or informal.",
+    ],
   },
   {
     id: "generatorOrSolarBackup",
@@ -547,6 +889,17 @@ export const ecoSolutions = [
     costLevel: "High",
     impactLevel: "Medium",
     scoreIncrease: 6,
+    affects: {
+      homeVulnerability: 5,
+      ecoMitigation: 5,
+      recoveryPreparedness: 4,
+    },
+    priority: "later",
+    relatedWeaknesses: [
+      "Emergency kit readiness is incomplete.",
+      "No recent home energy or drainage audit was reported.",
+      "Household emergency plan is missing or informal.",
+    ],
   },
   {
     id: "preDisasterPhotos",
@@ -561,6 +914,14 @@ export const ecoSolutions = [
     costLevel: "Free",
     impactLevel: "High",
     scoreIncrease: 8,
+    affects: {
+      recoveryPreparedness: 8,
+    },
+    priority: "now",
+    relatedWeaknesses: [
+      "Pre-disaster home photos are missing or incomplete.",
+      "Policy coverage details are not clearly understood.",
+    ],
   },
   {
     id: "documentBackup",
@@ -575,6 +936,14 @@ export const ecoSolutions = [
     costLevel: "Free",
     impactLevel: "High",
     scoreIncrease: 7,
+    affects: {
+      recoveryPreparedness: 7,
+    },
+    priority: "now",
+    relatedWeaknesses: [
+      "Important documents may not be backed up digitally.",
+      "Insurance readiness is unclear or incomplete.",
+    ],
   },
   {
     id: "homeInventory",
@@ -589,6 +958,15 @@ export const ecoSolutions = [
     costLevel: "Free",
     impactLevel: "Medium",
     scoreIncrease: 5,
+    affects: {
+      recoveryPreparedness: 6,
+    },
+    priority: "now",
+    relatedWeaknesses: [
+      "Pre-disaster home photos are missing or incomplete.",
+      "Policy coverage details are not clearly understood.",
+      "Important documents may not be backed up digitally.",
+    ],
   },
   {
     id: "householdEmergencyPlan",
@@ -603,6 +981,15 @@ export const ecoSolutions = [
     costLevel: "Free",
     impactLevel: "Medium",
     scoreIncrease: 6,
+    affects: {
+      recoveryPreparedness: 7,
+    },
+    priority: "now",
+    relatedWeaknesses: [
+      "Household emergency plan is missing or informal.",
+      "Emergency kit readiness is incomplete.",
+      "Local emergency alert registration may be missing.",
+    ],
   },
   {
     id: "emergencyKit72Hour",
@@ -617,6 +1004,14 @@ export const ecoSolutions = [
     costLevel: "Low",
     impactLevel: "Medium",
     scoreIncrease: 5,
+    affects: {
+      recoveryPreparedness: 6,
+    },
+    priority: "now",
+    relatedWeaknesses: [
+      "Emergency kit readiness is incomplete.",
+      "Important documents may not be backed up digitally.",
+    ],
   },
   {
     id: "localEmergencyRegistration",
@@ -631,6 +1026,14 @@ export const ecoSolutions = [
     costLevel: "Free",
     impactLevel: "Low",
     scoreIncrease: 3,
+    affects: {
+      recoveryPreparedness: 5,
+    },
+    priority: "now",
+    relatedWeaknesses: [
+      "Local emergency alert registration may be missing.",
+      "Household emergency plan is missing or informal.",
+    ],
   },
   {
     id: "rentersInsurance",
@@ -645,6 +1048,14 @@ export const ecoSolutions = [
     costLevel: "Medium",
     impactLevel: "High",
     scoreIncrease: 7,
+    affects: {
+      recoveryPreparedness: 7,
+    },
+    priority: "soon",
+    relatedWeaknesses: [
+      "Insurance readiness is unclear or incomplete.",
+      "Policy coverage details are not clearly understood.",
+    ],
   },
   {
     id: "insurancePolicyReview",
@@ -659,6 +1070,14 @@ export const ecoSolutions = [
     costLevel: "Free",
     impactLevel: "Medium",
     scoreIncrease: 5,
+    affects: {
+      recoveryPreparedness: 6,
+    },
+    priority: "now",
+    relatedWeaknesses: [
+      "Policy coverage details are not clearly understood.",
+      "Insurance readiness is unclear or incomplete.",
+    ],
   },
   {
     id: "cloudDocumentBackup",
@@ -673,5 +1092,13 @@ export const ecoSolutions = [
     costLevel: "Low",
     impactLevel: "Medium",
     scoreIncrease: 4,
+    affects: {
+      recoveryPreparedness: 6,
+    },
+    priority: "now",
+    relatedWeaknesses: [
+      "Important documents may not be backed up digitally.",
+      "Insurance readiness is unclear or incomplete.",
+    ],
   },
 ];
