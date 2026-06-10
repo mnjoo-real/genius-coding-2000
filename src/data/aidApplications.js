@@ -1,0 +1,38 @@
+export const mockAidApplications = [
+  {
+    id: "application-001",
+    programId: "fema-individual-assistance",
+    programName: "FEMA Individual Assistance Program",
+    agency: "FEMA",
+    status: "Submitted",
+    submittedDate: "2026-05-18",
+    deadlineDate: "2026-07-17",
+  },
+  {
+    id: "application-002",
+    programId: "sba-home-disaster-loan",
+    programName: "SBA Home Disaster Loan",
+    agency: "SBA",
+    status: "Preparing",
+    submittedDate: "",
+    deadlineDate: "2026-08-16",
+  },
+  {
+    id: "application-003",
+    programId: "state-emergency-relief-grant",
+    programName: "State Emergency Relief Grant",
+    agency: "State Emergency Management Office",
+    status: "Approved",
+    submittedDate: "2026-05-22",
+    deadlineDate: "2026-07-06",
+  },
+  {
+    id: "application-004",
+    programId: "local-housing-repair-support",
+    programName: "Local Housing Repair Support",
+    agency: "Local Housing Department",
+    status: "Denied",
+    submittedDate: "2026-05-12",
+    deadlineDate: "2026-09-09",
+  },
+];
