@@ -1,71 +1,28 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Button from "../components/ui/Button";
 import Input from "../components/ui/Input";
 import { regionalRiskData } from "../data/regionalRiskData";
 import { getRegionalRiskByZip } from "../services/riskLookupService";
-
-function saveResolvedLocation(submittedZipCode, regionalRiskProfile) {
-  localStorage.setItem("selectedZipCode", submittedZipCode);
-  localStorage.setItem("regionalRisk", JSON.stringify(regionalRiskProfile));
-}
+import {
+  readRegionalRisk,
+  readSelectedZipCode,
+  saveResolvedLocationProfile,
+} from "../services/userInfoSyncService";
 
 const RISK_LOOKUP_ERROR =
   "We could not find regional risk data for this ZIP code. Please check the ZIP code and try again.";
 
-function safeParseObject(rawValue) {
-  if (!rawValue) {
-    return null;
-  }
-
-  try {
-    const parsed = JSON.parse(rawValue);
-    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-      return parsed;
-    }
-  } catch {
-    // Ignore invalid saved regional risk state.
-  }
-
-  return null;
-}
-
-function readSavedZipCode() {
-  const rawValue = localStorage.getItem("selectedZipCode");
-  if (rawValue == null) {
-    return "";
-  }
-
-  try {
-    const parsed = JSON.parse(rawValue);
-    return typeof parsed === "string" ? parsed : rawValue;
-  } catch {
-    return rawValue;
-  }
-}
-
 export default function LocationInput() {
   const navigate = useNavigate();
-  const [zipCode, setZipCode] = useState("");
+  const [zipCode, setZipCode] = useState(() => readSelectedZipCode());
   const [error, setError] = useState("");
   const [isLookingUp, setIsLookingUp] = useState(false);
   const [resolvedRiskProfile, setResolvedRiskProfile] = useState(null);
   const [statusMessage, setStatusMessage] = useState("");
-  const [savedZipCode, setSavedZipCode] = useState("");
-  const [savedRegionalRisk, setSavedRegionalRisk] = useState(null);
+  const [savedZipCode, setSavedZipCode] = useState(() => readSelectedZipCode());
+  const [savedRegionalRisk, setSavedRegionalRisk] = useState(() => readRegionalRisk());
   const [isEditingSavedProfile, setIsEditingSavedProfile] = useState(false);
-
-  useEffect(() => {
-    const nextSavedZipCode = readSavedZipCode();
-    const nextSavedRegionalRisk = safeParseObject(localStorage.getItem("regionalRisk"));
-
-    setSavedZipCode(nextSavedZipCode);
-    setSavedRegionalRisk(nextSavedRegionalRisk);
-
-    if (nextSavedZipCode) {
-      setZipCode(nextSavedZipCode);
-    }
-  }, []);
 
   function handleZipChange(event) {
     setZipCode(event.target.value);
@@ -116,7 +73,7 @@ export default function LocationInput() {
         return;
       }
 
-      saveResolvedLocation(normalizedZipCode, regionalRisk);
+      saveResolvedLocationProfile(normalizedZipCode, regionalRisk);
       setSavedZipCode(normalizedZipCode);
       setSavedRegionalRisk(regionalRisk);
       setResolvedRiskProfile(regionalRisk);

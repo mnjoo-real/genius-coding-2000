@@ -4,6 +4,7 @@ import ProgressStepper from '../components/layout/ProgressStepper';
 import QuestionCard from '../components/questionnaire/QuestionCard';
 import Button from '../components/ui/Button';
 import { homeQuestions } from '../data/homeQuestions';
+import { readHomeProfile, saveHomeProfile } from '../services/userInfoSyncService';
 
 const STEPS = [
   { label: 'Location' },
@@ -11,23 +12,6 @@ const STEPS = [
   { label: 'Home Survey' },
   { label: 'Your Score' },
 ];
-
-function safeParseObject(rawValue) {
-  if (!rawValue) {
-    return null;
-  }
-
-  try {
-    const parsed = JSON.parse(rawValue);
-    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-      return parsed;
-    }
-  } catch {
-    // Ignore invalid saved profile data.
-  }
-
-  return null;
-}
 
 function getQuestionnaireAnswers(profile) {
   if (!profile || typeof profile !== 'object' || Array.isArray(profile)) {
@@ -47,9 +31,7 @@ function getQuestionnaireAnswers(profile) {
 export default function HomeQuestionnaire() {
   const navigate = useNavigate();
   const [answers, setAnswers] = useState({});
-  const [savedProfile, setSavedProfile] = useState(() =>
-    safeParseObject(localStorage.getItem('homeProfile'))
-  );
+  const [savedProfile, setSavedProfile] = useState(() => readHomeProfile());
   const [isEditingSavedProfile, setIsEditingSavedProfile] = useState(false);
 
   const total = homeQuestions.length;
@@ -69,7 +51,7 @@ export default function HomeQuestionnaire() {
   function handleSubmit() {
     if (!isComplete) return;
     const homeProfile = { ...answers, savedAt: new Date().toISOString() };
-    localStorage.setItem('homeProfile', JSON.stringify(homeProfile));
+    saveHomeProfile(homeProfile);
     setSavedProfile(homeProfile);
     navigate('/dashboard');
   }

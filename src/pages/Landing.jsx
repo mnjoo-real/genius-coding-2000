@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../components/ui/Button';
 import { regionalRiskData, fallbackRiskData } from '../data/regionalRiskData';
+import { saveResolvedLocationProfile } from '../services/userInfoSyncService';
 
 // Lazy-load the heavy Three.js globe so it doesn't block initial paint
 const Globe = lazy(() => import('react-globe.gl'));
@@ -366,8 +367,7 @@ export default function Landing() {
 
     const coords = ZIP_COORDS[trimmed] || { lat: 39.5, lng: -98.35 };
 
-    localStorage.setItem('selectedZipCode', trimmed);
-    localStorage.setItem('regionalRisk', JSON.stringify(risk));
+    saveResolvedLocationProfile(trimmed, risk);
 
     setSelectedRisk(risk);
     setZipError('');

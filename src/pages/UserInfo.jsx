@@ -1,7 +1,10 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { calculateScore } from "../utils/calculateScore";
-import { readPreparednessSnapshot } from "../services/userInfoSyncService";
+import {
+  getPreparednessStorageScope,
+  readPreparednessSnapshot,
+} from "../services/userInfoSyncService";
 
 function formatLabel(value) {
   if (!value) {
@@ -228,6 +231,7 @@ function PreparednessReport({ selectedZipCode, scoreData, scoreUnavailable }) {
 
 export default function UserInfo() {
   const [preparednessSnapshot] = useState(() => readPreparednessSnapshot());
+  const [storageScope] = useState(() => getPreparednessStorageScope());
 
   const selectedZipCode = preparednessSnapshot.selectedZipCode;
   const regionalRisk = preparednessSnapshot.regionalRisk;
@@ -360,21 +364,22 @@ export default function UserInfo() {
                   <h2 className="mt-1 text-xl">Saved profile source</h2>
                 </div>
                 <span className="text-xs text-stone-400">
-                  Browser only
+                  {storageScope.type === "user" ? "Current account" : "Guest browser data"}
                 </span>
               </div>
 
               <p className="mt-4 max-w-3xl text-sm leading-6 text-stone-600">
-                Login state and questionnaire data are stored locally on this device. ZIP code
-                lookup still uses the Supabase-backed regional risk data source before saving the
-                resolved risk profile here.
+                Login state and questionnaire data are stored locally on this device. Signed-in
+                accounts use their own local profile; guest mode uses the shared guest browser
+                profile. ZIP code lookup still uses the Supabase-backed regional risk data source.
               </p>
 
               <div className="mt-5 rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm text-stone-600">
                 <p className="font-medium text-stone-900">Keys used</p>
                 <p className="mt-1 text-xs leading-5">
-                  selectedZipCode, regionalRisk, homeProfile, canopyLocalAuthSession,
-                  canopyLocalAuthUsers
+                  {storageScope.type === "user"
+                    ? "canopyProfile:<account-id>:selectedZipCode, canopyProfile:<account-id>:regionalRisk, canopyProfile:<account-id>:homeProfile"
+                    : "selectedZipCode, regionalRisk, homeProfile"}
                 </p>
               </div>
             </section>

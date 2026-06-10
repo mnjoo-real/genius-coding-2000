@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import RiskBarChart from "../components/risk/RiskBarChart";
+import { readRegionalRisk } from "../services/userInfoSyncService";
 
 const RISK_FIELDS = [
   { label: "Flood",        field: "floodRisk",       color: "#6d8f4a" },
@@ -8,19 +9,6 @@ const RISK_FIELDS = [
   { label: "Storm",        field: "stormRisk",        color: "#2f5d40" },
   { label: "Winter Storm", field: "winterStormRisk",  color: "#a8b89a" },
 ];
-
-function readRegionalRisk() {
-  if (typeof window === "undefined") return null;
-  try {
-    const raw = window.localStorage.getItem("regionalRisk");
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
-    return parsed;
-  } catch {
-    return null;
-  }
-}
 
 function str(value, fallback) {
   return typeof value === "string" && value.trim() ? value : fallback;

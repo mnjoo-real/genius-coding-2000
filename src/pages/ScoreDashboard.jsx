@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../components/ui/Button';
 import ScoreGauge from '../components/score/ScoreGauge';
@@ -7,6 +7,11 @@ import RecommendationCard from '../components/recommendations/RecommendationCard
 import RecoveryPreviewCard from '../components/recovery/RecoveryPreviewCard';
 import { calculateScore } from '../utils/calculateScore';
 import { generateRecommendations } from '../utils/generateRecommendations';
+import {
+  clearPreparednessProfile,
+  readHomeProfile,
+  readRegionalRisk,
+} from '../services/userInfoSyncService';
 
 function impactToPriority(impactLevel) {
   if (impactLevel === 'High')   return 'now';
@@ -22,36 +27,29 @@ function getScoreLabel(score) {
 
 export default function ScoreDashboard() {
   const navigate = useNavigate();
-  const [homeProfile,     setHomeProfile]     = useState(null);
-  const [regionalRisk,    setRegionalRisk]    = useState(null);
-  const [scoreData,       setScoreData]       = useState(null);
-  const [recommendations, setRecommendations] = useState([]);
   const [doneActionIds,   setDoneActionIds]   = useState([]);
+  const [homeProfile] = useState(() => readHomeProfile());
+  const [regionalRisk] = useState(() => readRegionalRisk());
 
-  useEffect(() => {
-    const profile = JSON.parse(localStorage.getItem('homeProfile'));
-    const risk    = JSON.parse(localStorage.getItem('regionalRisk'));
-    setHomeProfile(profile);
-    setRegionalRisk(risk);
-  }, []);
+  const scoreData = useMemo(() => {
+    if (!homeProfile || !regionalRisk) return null;
 
-  useEffect(() => {
-    if (!homeProfile || !regionalRisk) return;
-    let result;
     try {
-      result = calculateScore(regionalRisk, homeProfile);
-      setScoreData(result);
+      return calculateScore(regionalRisk, homeProfile);
     } catch {
-      setScoreData(null);
-      setRecommendations([]);
-      return;
-    }
-    try {
-      setRecommendations(generateRecommendations(regionalRisk, homeProfile, result));
-    } catch {
-      setRecommendations([]);
+      return null;
     }
   }, [homeProfile, regionalRisk]);
+
+  const recommendations = useMemo(() => {
+    if (!homeProfile || !regionalRisk || !scoreData) return [];
+
+    try {
+      return generateRecommendations(regionalRisk, homeProfile, scoreData);
+    } catch {
+      return [];
+    }
+  }, [homeProfile, regionalRisk, scoreData]);
 
   const handleDoneToggle = (actionId) => {
     setDoneActionIds(prev =>
@@ -63,9 +61,7 @@ export default function ScoreDashboard() {
 
   const handleStartOver = () => {
     if (!window.confirm('Are you sure? This will reset all your data.')) return;
-    localStorage.removeItem('selectedZipCode');
-    localStorage.removeItem('regionalRisk');
-    localStorage.removeItem('homeProfile');
+    clearPreparednessProfile();
     navigate('/location');
   };
 

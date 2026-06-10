@@ -1,4 +1,12 @@
+import { getLocalAuthSession } from "./localAuthService";
+
 const PROFILE_ID_STORAGE_KEY = "profile_id";
+const PROFILE_STORAGE_PREFIX = "canopyProfile";
+const PROFILE_DATA_KEYS = {
+  selectedZipCode: "selectedZipCode",
+  regionalRisk: "regionalRisk",
+  homeProfile: "homeProfile",
+};
 
 function safeParseJson(rawValue) {
   if (typeof rawValue !== "string" || rawValue.trim() === "") {
@@ -12,12 +20,26 @@ function safeParseJson(rawValue) {
   }
 }
 
+function canUseLocalStorage() {
+  return typeof window !== "undefined" && Boolean(window.localStorage);
+}
+
+function getProfileScope() {
+  const userId = getLocalAuthSession()?.user?.id;
+  return userId ? { type: "user", id: userId } : { type: "guest", id: "guest" };
+}
+
+function getScopedStorageKey(key) {
+  const scope = getProfileScope();
+  return scope.type === "guest" ? key : `${PROFILE_STORAGE_PREFIX}:${scope.id}:${key}`;
+}
+
 function readStorageValue(key) {
   if (typeof window === "undefined") {
     return null;
   }
 
-  const rawValue = window.localStorage.getItem(key);
+  const rawValue = window.localStorage.getItem(getScopedStorageKey(key));
   if (rawValue == null) {
     return null;
   }
@@ -31,21 +53,23 @@ function readStorageValue(key) {
 }
 
 function writeStorageValue(key, value) {
-  if (typeof window === "undefined") {
+  if (!canUseLocalStorage()) {
     return;
   }
 
+  const storageKey = getScopedStorageKey(key);
+
   if (value == null) {
-    window.localStorage.removeItem(key);
+    window.localStorage.removeItem(storageKey);
     return;
   }
 
   if (key === "selectedZipCode") {
-    window.localStorage.setItem(key, String(value));
+    window.localStorage.setItem(storageKey, String(value));
     return;
   }
 
-  window.localStorage.setItem(key, JSON.stringify(value));
+  window.localStorage.setItem(storageKey, JSON.stringify(value));
 }
 
 function createLocalProfileId() {
@@ -57,20 +81,25 @@ function createLocalProfileId() {
 }
 
 export function getPreparednessProfileId() {
-  if (typeof window === "undefined") {
+  if (!canUseLocalStorage()) {
     return null;
   }
 
-  const existingProfileId = window.localStorage.getItem(PROFILE_ID_STORAGE_KEY);
+  const storageKey = getScopedStorageKey(PROFILE_ID_STORAGE_KEY);
+  const existingProfileId = window.localStorage.getItem(storageKey);
 
   if (existingProfileId) {
-    window.localStorage.setItem(PROFILE_ID_STORAGE_KEY, existingProfileId);
+    window.localStorage.setItem(storageKey, existingProfileId);
     return existingProfileId;
   }
 
   const nextProfileId = createLocalProfileId();
-  window.localStorage.setItem(PROFILE_ID_STORAGE_KEY, nextProfileId);
+  window.localStorage.setItem(storageKey, nextProfileId);
   return nextProfileId;
+}
+
+export function getPreparednessStorageScope() {
+  return getProfileScope();
 }
 
 export function hydratePreparednessSnapshotToLocalStorage(snapshot) {
@@ -92,9 +121,9 @@ export function hydratePreparednessSnapshotToLocalStorage(snapshot) {
 }
 
 export function readPreparednessSnapshot() {
-  const selectedZipCode = readStorageValue("selectedZipCode");
-  const regionalRisk = readStorageValue("regionalRisk");
-  const homeProfile = readStorageValue("homeProfile");
+  const selectedZipCode = readStorageValue(PROFILE_DATA_KEYS.selectedZipCode);
+  const regionalRisk = readStorageValue(PROFILE_DATA_KEYS.regionalRisk);
+  const homeProfile = readStorageValue(PROFILE_DATA_KEYS.homeProfile);
 
   return {
     selectedZipCode: typeof selectedZipCode === "string" ? selectedZipCode : null,
@@ -107,4 +136,38 @@ export function readPreparednessSnapshot() {
         ? homeProfile
         : null,
   };
+}
+
+export function readSelectedZipCode() {
+  const selectedZipCode = readStorageValue(PROFILE_DATA_KEYS.selectedZipCode);
+  return typeof selectedZipCode === "string" ? selectedZipCode : "";
+}
+
+export function readRegionalRisk() {
+  const regionalRisk = readStorageValue(PROFILE_DATA_KEYS.regionalRisk);
+  return regionalRisk && typeof regionalRisk === "object" && !Array.isArray(regionalRisk)
+    ? regionalRisk
+    : null;
+}
+
+export function readHomeProfile() {
+  const homeProfile = readStorageValue(PROFILE_DATA_KEYS.homeProfile);
+  return homeProfile && typeof homeProfile === "object" && !Array.isArray(homeProfile)
+    ? homeProfile
+    : null;
+}
+
+export function saveResolvedLocationProfile(submittedZipCode, regionalRiskProfile) {
+  writeStorageValue(PROFILE_DATA_KEYS.selectedZipCode, submittedZipCode);
+  writeStorageValue(PROFILE_DATA_KEYS.regionalRisk, regionalRiskProfile);
+}
+
+export function saveHomeProfile(homeProfile) {
+  writeStorageValue(PROFILE_DATA_KEYS.homeProfile, homeProfile);
+}
+
+export function clearPreparednessProfile() {
+  writeStorageValue(PROFILE_DATA_KEYS.selectedZipCode, null);
+  writeStorageValue(PROFILE_DATA_KEYS.regionalRisk, null);
+  writeStorageValue(PROFILE_DATA_KEYS.homeProfile, null);
 }
