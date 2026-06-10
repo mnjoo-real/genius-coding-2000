@@ -2,6 +2,10 @@ function clampScore(score) {
   return Math.max(0, Math.min(100, Math.round(score)));
 }
 
+function clampCategoryScore(score) {
+  return Math.max(0, Math.min(25, Math.round(score)));
+}
+
 function includesAnswer(value, target) {
   if (Array.isArray(value)) {
     return value.includes(target);
@@ -22,11 +26,17 @@ export function calculateScore(regionalRisk, homeProfile) {
   if (!regionalRisk || !homeProfile) {
     return {
       totalScore: 0,
+      maxAchievableScore: 0,
+      categoryScores: {
+        locationRiskScore: 0,
+        homeVulnerabilityScore: 0,
+        ecoMitigationScore: 0,
+        recoveryPreparednessScore: 0,
+      },
       weaknesses: ["Complete the location and home questionnaire first."],
     };
   }
 
-  let score = 100;
   const weaknesses = [];
 
   const riskValues = [
@@ -40,14 +50,19 @@ export function calculateScore(regionalRisk, homeProfile) {
   const averageRegionalRisk =
     riskValues.reduce((sum, value) => sum + value, 0) / riskValues.length;
 
-  const regionalPenalty = Math.round(averageRegionalRisk * 0.18);
-  score -= regionalPenalty;
+  const locationRiskScore = clampCategoryScore(
+    25 - averageRegionalRisk * 0.25
+  );
 
   if (averageRegionalRisk >= 70) {
     weaknesses.push("Your region has high overall disaster exposure.");
   } else if (averageRegionalRisk >= 45) {
     weaknesses.push("Your region has moderate disaster exposure.");
   }
+
+  let homeVulnerabilityScore = 25;
+  let ecoMitigationScore = 25;
+  let recoveryPreparednessScore = 25;
 
   if (
     hasAnyAnswer(homeProfile.basementOrCrawlSpace, [
@@ -56,7 +71,7 @@ export function calculateScore(regionalRisk, homeProfile) {
       "Yes",
     ])
   ) {
-    score -= 6;
+    homeVulnerabilityScore -= 6;
     weaknesses.push("Basement or crawl space may increase flood vulnerability.");
   }
 
@@ -67,7 +82,7 @@ export function calculateScore(regionalRisk, homeProfile) {
       "Older than 40 years",
     ])
   ) {
-    score -= 6;
+    homeVulnerabilityScore -= 6;
     weaknesses.push("Older homes may need structural and efficiency upgrades.");
   }
 
@@ -79,7 +94,7 @@ export function calculateScore(regionalRisk, homeProfile) {
       "Not sure",
     ])
   ) {
-    score -= 5;
+    homeVulnerabilityScore -= 5;
     weaknesses.push("Roof material may be vulnerable to wind, heat, or wildfire exposure.");
   }
 
@@ -91,7 +106,7 @@ export function calculateScore(regionalRisk, homeProfile) {
       "Not sure",
     ])
   ) {
-    score -= 6;
+    homeVulnerabilityScore -= 6;
     weaknesses.push("Windows and doors may need stronger storm protection.");
   }
 
@@ -102,7 +117,7 @@ export function calculateScore(regionalRisk, homeProfile) {
       "Large paved area",
     ])
   ) {
-    score -= 6;
+    ecoMitigationScore -= 6;
     weaknesses.push("High paved surface coverage can worsen stormwater runoff.");
   }
 
@@ -114,7 +129,7 @@ export function calculateScore(regionalRisk, homeProfile) {
       "Major pooling",
     ])
   ) {
-    score -= 8;
+    homeVulnerabilityScore -= 8;
     weaknesses.push("Water pooling near the home increases flood and foundation risk.");
   }
 
@@ -126,7 +141,7 @@ export function calculateScore(regionalRisk, homeProfile) {
       "Near the home",
     ])
   ) {
-    score -= 7;
+    homeVulnerabilityScore -= 7;
     weaknesses.push("Dry vegetation close to the home increases wildfire vulnerability.");
   }
 
@@ -137,7 +152,7 @@ export function calculateScore(regionalRisk, homeProfile) {
       "High density",
     ])
   ) {
-    score -= 4;
+    ecoMitigationScore -= 4;
     weaknesses.push("Dense surroundings can increase heat and drainage stress.");
   }
 
@@ -146,7 +161,7 @@ export function calculateScore(regionalRisk, homeProfile) {
     includesAnswer(homeProfile.ecoFeatures, "None") ||
     includesAnswer(homeProfile.ecoFeatures, "Not sure")
   ) {
-    score -= 7;
+    ecoMitigationScore -= 7;
     weaknesses.push("Few existing eco-mitigation features were reported.");
   }
 
@@ -157,7 +172,7 @@ export function calculateScore(regionalRisk, homeProfile) {
       "Large branches over roof",
     ])
   ) {
-    score -= 5;
+    homeVulnerabilityScore -= 5;
     weaknesses.push("Large nearby trees or overhanging branches may increase storm damage risk.");
   }
 
@@ -168,7 +183,7 @@ export function calculateScore(regionalRisk, homeProfile) {
       "Not sure",
     ])
   ) {
-    score -= 4;
+    ecoMitigationScore -= 4;
     weaknesses.push("No recent home energy or drainage audit was reported.");
   }
 
@@ -179,7 +194,7 @@ export function calculateScore(regionalRisk, homeProfile) {
       "I do not know",
     ])
   ) {
-    score -= 6;
+    recoveryPreparednessScore -= 6;
     weaknesses.push("Insurance readiness is unclear or incomplete.");
   }
 
@@ -190,7 +205,7 @@ export function calculateScore(regionalRisk, homeProfile) {
       "I do not know",
     ])
   ) {
-    score -= 5;
+    recoveryPreparednessScore -= 5;
     weaknesses.push("Policy coverage details are not clearly understood.");
   }
 
@@ -201,7 +216,7 @@ export function calculateScore(regionalRisk, homeProfile) {
       "Only paper copies",
     ])
   ) {
-    score -= 5;
+    recoveryPreparednessScore -= 5;
     weaknesses.push("Important documents may not be backed up digitally.");
   }
 
@@ -212,7 +227,7 @@ export function calculateScore(regionalRisk, homeProfile) {
       "I have not taken photos",
     ])
   ) {
-    score -= 4;
+    recoveryPreparednessScore -= 4;
     weaknesses.push("Pre-disaster home photos are missing or incomplete.");
   }
 
@@ -223,7 +238,7 @@ export function calculateScore(regionalRisk, homeProfile) {
       "Not sure",
     ])
   ) {
-    score -= 6;
+    recoveryPreparednessScore -= 6;
     weaknesses.push("Emergency kit readiness is incomplete.");
   }
 
@@ -234,7 +249,7 @@ export function calculateScore(regionalRisk, homeProfile) {
       "Informal only",
     ])
   ) {
-    score -= 6;
+    recoveryPreparednessScore -= 6;
     weaknesses.push("Household emergency plan is missing or informal.");
   }
 
@@ -245,16 +260,34 @@ export function calculateScore(regionalRisk, homeProfile) {
       "I do not know",
     ])
   ) {
-    score -= 3;
+    recoveryPreparednessScore -= 3;
     weaknesses.push("Local emergency alert registration may be missing.");
   }
+
+  const categoryScores = {
+    locationRiskScore,
+    homeVulnerabilityScore: clampCategoryScore(homeVulnerabilityScore),
+    ecoMitigationScore: clampCategoryScore(ecoMitigationScore),
+    recoveryPreparednessScore: clampCategoryScore(recoveryPreparednessScore),
+  };
+
+  const totalScore = clampScore(
+    categoryScores.locationRiskScore +
+      categoryScores.homeVulnerabilityScore +
+      categoryScores.ecoMitigationScore +
+      categoryScores.recoveryPreparednessScore
+  );
+
+  const maxAchievableScore = categoryScores.locationRiskScore + 75;
 
   if (weaknesses.length === 0) {
     weaknesses.push("No major vulnerabilities detected from your answers.");
   }
 
   return {
-    totalScore: clampScore(score),
+    totalScore,
+    maxAchievableScore,
+    categoryScores,
     weaknesses,
   };
 }
