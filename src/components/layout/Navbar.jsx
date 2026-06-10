@@ -64,8 +64,9 @@ export default function Navbar() {
     <nav className="sticky top-0 z-50 bg-parchment border-b border-stone-200">
       <div className="mx-auto max-w-5xl px-4 flex items-center justify-between h-14">
 
-        <Link to="/" className="no-underline font-display text-lg text-forest hover:text-forest">
-          Canopy
+        <Link to="/" className="no-underline font-display text-lg text-forest hover:text-forest flex items-center gap-2" aria-label="Canopy home">
+          <span aria-hidden="true" className="text-xl leading-none"> 🌿 </span>
+          <span>Canopy</span>
         </Link>
 
         {/* Desktop */}
