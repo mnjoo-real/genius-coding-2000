@@ -27,12 +27,24 @@ function SingleOptions({ options, value, onChange }) {
   );
 }
 
+function isNoneOption(option) {
+  return /^none\b/i.test(option.trim()) || /^neither\b/i.test(option.trim());
+}
+
 function MultiOptions({ options, value, onChange }) {
   const toggle = (option) => {
-    const next = value.includes(option)
-      ? value.filter((v) => v !== option)
-      : [...value, option];
-    onChange(next);
+    if (value.includes(option)) {
+      onChange(value.filter((v) => v !== option));
+      return;
+    }
+    if (isNoneOption(option)) {
+      // Selecting a "none" option clears everything else
+      onChange([option]);
+    } else {
+      // Selecting any regular option clears any active "none" option
+      const withoutNone = value.filter((v) => !isNoneOption(v));
+      onChange([...withoutNone, option]);
+    }
   };
 
   return (
@@ -83,6 +95,7 @@ function MultiOptions({ options, value, onChange }) {
 }
 
 export default function QuestionCard({
+  questionNumber,
   question,
   why,
   type = 'single',
@@ -95,6 +108,9 @@ export default function QuestionCard({
 
   return (
     <Card>
+      {questionNumber != null && (
+        <p className="text-xs font-medium text-stone-400 mb-0.5">Q{questionNumber}</p>
+      )}
       <p className="text-base font-medium text-stone-900 mb-1">{question}</p>
       {why && <p className="text-sm text-stone-400 mb-4 leading-relaxed">{why}</p>}
 

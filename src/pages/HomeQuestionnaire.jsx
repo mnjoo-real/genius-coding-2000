@@ -7,9 +7,9 @@ import { homeQuestions } from '../data/homeQuestions';
 
 const STEPS = [
   { label: 'Location' },
-  { label: 'Risk' },
-  { label: 'Home Check' },
-  { label: 'Score' },
+  { label: 'Regional Risk Profile' },
+  { label: 'Home Survey' },
+  { label: 'Your Score' },
 ];
 
 export default function HomeQuestionnaire() {
@@ -47,14 +47,14 @@ export default function HomeQuestionnaire() {
 
           <h1 className="text-3xl mb-2">Tell us about your home</h1>
           <p className="text-stone-500 mb-2">
-            Your answers are used only to calculate your risk score.
+            Your answers calculate your home's risk score, shape your personalized eco-mitigation recommendations, and help identify which disaster aid and recovery programs you may qualify for.
           </p>
           <p className="text-sm font-medium text-leaf mb-8">
             {answeredCount} of {total} answered
           </p>
 
           <div className="flex flex-col gap-4">
-            {homeQuestions.map((q) => {
+            {homeQuestions.map((q, index) => {
               const val = answers[q.id] ?? (q.type === 'multi' ? [] : null);
 
               let activeFlag;
@@ -69,6 +69,7 @@ export default function HomeQuestionnaire() {
               return (
                 <QuestionCard
                   key={q.id}
+                  questionNumber={index + 1}
                   question={q.question}
                   why={q.whyItMatters}
                   type={q.type}
