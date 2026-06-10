@@ -109,6 +109,7 @@ export default function ScoreDashboard() {
   const weakestArea = categories.length > 0
     ? categories.reduce((a, b) => (a.score < b.score ? a : b)).name
     : null;
+  const maxAchievableScore = scoreData?.maxAchievableScore ?? 100;
 
   return (
     <main className="min-h-screen bg-parchment px-6 py-16">
@@ -130,6 +131,14 @@ export default function ScoreDashboard() {
                     <span className={`text-sm font-medium ${label.className}`}>
                       {label.text}
                     </span>
+                    <div className="mt-2 max-w-md rounded border border-stone-200 bg-white/70 px-4 py-3 text-sm text-stone-500">
+                      <p>Current score: {scoreData.totalScore}/100</p>
+                      <p>Maximum achievable score: {maxAchievableScore}/100</p>
+                      <p className="mt-2">
+                        Location risk is fixed based on your ZIP code, so your action plan focuses
+                        on the categories you can improve.
+                      </p>
+                    </div>
                   </div>
                   <WeaknessList categories={categories} />
                   <p className="text-sm text-stone-500">
