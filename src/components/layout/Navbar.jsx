@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { signOutLocalAccount } from '../../services/localAuthService';
+import { clearPreparednessProfile } from '../../services/userInfoSyncService';
 
 const baseNavLinks = [
   { label: 'Home', to: '/' },
@@ -45,20 +46,30 @@ export default function Navbar() {
   const { pathname } = useLocation();
   const [open, setOpen] = useState(false);
   const { isAuthenticated, isLoading } = useAuth();
+  const isDashboard = pathname === '/dashboard';
 
   const isActive = (to) => pathname === to;
 
   const navLinks = [
     ...baseNavLinks,
+    isDashboard ? { label: 'RESET', action: 'reset' } : null,
     isAuthenticated
       ? { label: 'Logout', action: 'logout' }
       : { label: 'Login', to: '/login' },
-  ];
+  ].filter(Boolean);
 
   function handleLogout() {
     setOpen(false);
     signOutLocalAccount();
     navigate('/login');
+  }
+
+  function handleReset() {
+    if (!window.confirm('Are you sure? This will reset all your data.')) return;
+
+    setOpen(false);
+    clearPreparednessProfile();
+    navigate('/location');
   }
 
   return (
@@ -75,7 +86,10 @@ export default function Navbar() {
           {navLinks.map((link) => (
             <li key={link.label}>
               {'action' in link ? (
-                <NavButton label={link.label} onClick={handleLogout} />
+                <NavButton
+                  label={link.label}
+                  onClick={link.action === 'reset' ? handleReset : handleLogout}
+                />
               ) : (
                 <NavLink {...link} active={isActive(link.to)} />
               )}
@@ -110,9 +124,7 @@ export default function Navbar() {
               {'action' in link ? (
                 <NavButton
                   label={link.label}
-                  onClick={() => {
-                    handleLogout();
-                  }}
+                  onClick={link.action === 'reset' ? handleReset : handleLogout}
                 />
               ) : (
                 <NavLink

@@ -1,17 +1,12 @@
 import { useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import Button from '../components/ui/Button';
+import { Link } from 'react-router-dom';
 import ScoreGauge from '../components/score/ScoreGauge';
 import WeaknessList from '../components/score/WeaknessList';
 import RecommendationCard from '../components/recommendations/RecommendationCard';
 import { calculateScore } from '../utils/calculateScore';
 import { getProjectedScoreDetails } from '../utils/calculateProjectedScore';
 import { generateRecommendations } from '../utils/generateRecommendations';
-import {
-  clearPreparednessProfile,
-  readHomeProfile,
-  readRegionalRisk,
-} from '../services/userInfoSyncService';
+import { readHomeProfile, readRegionalRisk } from '../services/userInfoSyncService';
 
 function impactToPriority(impactLevel) {
   if (impactLevel === 'High')   return 'now';
@@ -26,7 +21,6 @@ function getScoreLabel(score) {
 }
 
 export default function ScoreDashboard() {
-  const navigate = useNavigate();
   const [doneActionIds,   setDoneActionIds]   = useState([]);
   const [homeProfile] = useState(() => readHomeProfile());
   const [regionalRisk] = useState(() => readRegionalRisk());
@@ -69,12 +63,6 @@ export default function ScoreDashboard() {
     );
   };
 
-  const handleStartOver = () => {
-    if (!window.confirm('Are you sure? This will reset all your data.')) return;
-    clearPreparednessProfile();
-    navigate('/location');
-  };
-
   if (!homeProfile || !regionalRisk) {
     return (
       <main className="min-h-screen bg-parchment px-6 py-16">
@@ -83,9 +71,12 @@ export default function ScoreDashboard() {
           <p className="mt-3 text-stone-500">
             Please complete the location and home assessment steps first.
           </p>
-          <Button variant="primary" className="mt-6" onClick={() => navigate('/location')}>
-            Start Over
-          </Button>
+          <Link
+            to="/location"
+            className="mt-6 inline-flex items-center justify-center rounded-md bg-leaf px-4 py-2 text-base font-medium text-white transition-colors hover:bg-forest"
+          >
+            Go to Location Setup
+          </Link>
         </div>
       </main>
     );
@@ -200,12 +191,6 @@ export default function ScoreDashboard() {
             </div>
           </>
         )}
-
-        <div className="mt-10">
-          <Button variant="secondary" size="sm" onClick={handleStartOver}>
-            Start Over
-          </Button>
-        </div>
 
       </div>
     </main>
