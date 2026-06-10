@@ -83,9 +83,6 @@ export default function RiskOverview() {
               <p className="text-xs font-medium uppercase tracking-[0.2em] text-leaf">
                 Region Summary
               </p>
-              <h2 className="mt-2 text-xl">
-                {regionSummary.city}, {regionSummary.state}
-              </h2>
               <dl className="mt-4 grid gap-3 sm:grid-cols-3">
                 <div className="rounded-xl border border-stone-200 bg-parchment/60 p-3">
                   <dt className="text-xs font-medium text-stone-500">City</dt>
