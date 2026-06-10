@@ -1,6 +1,9 @@
 import { useId, useState } from "react";
-
-const STORAGE_KEY = "recoveryDamageRecord";
+import { useAuth } from "../../context/AuthContext";
+import {
+  readRecoveryDamageRecord,
+  saveRecoveryDamageRecord,
+} from "../../services/userInfoSyncService";
 
 const DAMAGE_TYPE_GROUPS = [
   {
@@ -55,23 +58,6 @@ const EMPTY_RECORD = {
   homePhotos: [],
   receiptPhotos: [],
 };
-
-function safeParseObject(rawValue) {
-  if (!rawValue) {
-    return {};
-  }
-
-  try {
-    const parsed = JSON.parse(rawValue);
-    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-      return parsed;
-    }
-  } catch {
-    // Use the empty fallback below.
-  }
-
-  return {};
-}
 
 function normalizeRecord(value) {
   const parsed = value && typeof value === "object" && !Array.isArray(value) ? value : {};
@@ -154,18 +140,37 @@ function AddPhotoButton({ label, onClick, inputId }) {
   );
 }
 
+function InfoTooltip({ label, description }) {
+  return (
+    <div className="group relative inline-flex">
+      <button
+        type="button"
+        className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-stone-300 bg-white text-[11px] font-semibold text-stone-500 transition-colors hover:border-emerald-300 hover:text-emerald-700 focus-visible:border-emerald-400 focus-visible:text-emerald-700"
+        aria-label={label}
+        title={description}
+      >
+        ?
+      </button>
+      <div className="pointer-events-none absolute left-1/2 top-full z-20 mt-2 w-72 -translate-x-1/2 rounded-2xl bg-stone-900 px-3 py-2 text-xs leading-5 text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+        {description}
+      </div>
+    </div>
+  );
+}
+
 function PhotoUploadGrid({ title, description, items, onAdd, onRemove }) {
   const inputId = useId();
 
   return (
     <section className="rounded-3xl border border-stone-200 bg-white p-5 shadow-sm">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h3 className="text-xl font-semibold text-stone-900">{title}</h3>
-          <p className="mt-1 max-w-2xl text-sm leading-6 text-stone-600">{description}</p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="max-w-2xl">
+          <div className="flex items-center gap-2">
+            <h3 className="text-xl font-semibold text-stone-900">{title}</h3>
+            <InfoTooltip label={`${title} help`} description={description} />
+          </div>
         </div>
         <div className="flex items-center gap-3">
-          <p className="text-sm font-medium text-stone-600">{items.length} uploaded</p>
           <AddPhotoButton
             label={`Add ${title}`}
             inputId={`${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${inputId}`}
@@ -189,14 +194,8 @@ function PhotoUploadGrid({ title, description, items, onAdd, onRemove }) {
   );
 }
 
-export default function RecoveryWorkspace() {
-  const [record, setRecord] = useState(() => {
-    if (typeof window === "undefined") {
-      return EMPTY_RECORD;
-    }
-
-    return normalizeRecord(safeParseObject(window.localStorage.getItem(STORAGE_KEY)));
-  });
+function RecoveryWorkspaceContent({ isAuthenticated }) {
+  const [record, setRecord] = useState(() => normalizeRecord(readRecoveryDamageRecord()));
   const [saveStatus, setSaveStatus] = useState("");
 
   const handleRecordChange = (field, value) => {
@@ -258,12 +257,8 @@ export default function RecoveryWorkspace() {
   };
 
   const handleSave = () => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(record));
-    setSaveStatus("Saved to this browser.");
+    saveRecoveryDamageRecord(record);
+    setSaveStatus(isAuthenticated ? "Saved to this account." : "Saved to this browser.");
   };
 
   return (
@@ -374,4 +369,10 @@ export default function RecoveryWorkspace() {
       </section>
     </section>
   );
+}
+
+export default function RecoveryWorkspace() {
+  const { user } = useAuth();
+
+  return <RecoveryWorkspaceContent key={user?.id ?? "guest"} isAuthenticated={Boolean(user)} />;
 }

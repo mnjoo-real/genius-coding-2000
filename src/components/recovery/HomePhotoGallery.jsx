@@ -1,42 +1,14 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useAuth } from "../../context/AuthContext";
 import { homePhotoCategories } from "../../data/homePhotoCategories";
+import {
+  readHomePhotoChecklist,
+  saveHomePhotoChecklist,
+} from "../../services/userInfoSyncService";
 import PhotoCategoryCard from "./PhotoCategoryCard";
 
-const STORAGE_KEY = "homePhotoChecklist";
-
-function safeParseChecklist(rawValue) {
-  if (!rawValue) {
-    return {};
-  }
-
-  try {
-    const parsed = JSON.parse(rawValue);
-    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-      return parsed;
-    }
-  } catch {
-    // Fall back to a safe empty object.
-  }
-
-  return {};
-}
-
-export default function HomePhotoGallery() {
-  const [checklist, setChecklist] = useState(() => {
-    if (typeof window === "undefined") {
-      return {};
-    }
-
-    return safeParseChecklist(window.localStorage.getItem(STORAGE_KEY));
-  });
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(checklist));
-  }, [checklist]);
+function HomePhotoGalleryContent() {
+  const [checklist, setChecklist] = useState(() => readHomePhotoChecklist());
 
   const categories = Array.isArray(homePhotoCategories) ? homePhotoCategories : [];
   const documentedCount = categories.reduce((count, category) => {
@@ -44,10 +16,15 @@ export default function HomePhotoGallery() {
   }, 0);
 
   const handleToggle = (categoryId) => {
-    setChecklist((currentChecklist) => ({
-      ...currentChecklist,
-      [categoryId]: !currentChecklist[categoryId],
-    }));
+    setChecklist((currentChecklist) => {
+      const nextChecklist = {
+        ...currentChecklist,
+        [categoryId]: !currentChecklist[categoryId],
+      };
+
+      saveHomePhotoChecklist(nextChecklist);
+      return nextChecklist;
+    });
   };
 
   return (
@@ -89,4 +66,10 @@ export default function HomePhotoGallery() {
       </div>
     </section>
   );
+}
+
+export default function HomePhotoGallery() {
+  const { user } = useAuth();
+
+  return <HomePhotoGalleryContent key={user?.id ?? "guest"} />;
 }

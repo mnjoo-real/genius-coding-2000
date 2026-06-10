@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import {
   createLocalAccount,
@@ -28,6 +28,7 @@ function Field({ id, label, type, value, onChange, placeholder, autoComplete }) 
 export default function Login() {
   const navigate = useNavigate();
   const { isAuthenticated, isLoading, user } = useAuth();
+  const [isCreateMode, setIsCreateMode] = useState(false);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -35,8 +36,47 @@ export default function Login() {
   const [status, setStatus] = useState({ type: "idle", message: "" });
   const isSubmitting = status.type === "loading";
 
-  function handleSignIn() {
+  function handleModeChange(nextMode) {
     if (isSubmitting) {
+      return;
+    }
+
+    setIsCreateMode(nextMode);
+    setStatus({ type: "idle", message: "" });
+  }
+
+  function handleSubmit() {
+    if (isSubmitting) {
+      return;
+    }
+
+    if (isCreateMode) {
+      if (!firstName || !lastName || !email || !password) {
+        setStatus({
+          type: "error",
+          message: "Enter your first name, last name, email, and password.",
+        });
+        return;
+      }
+
+      setStatus({ type: "loading", message: "Creating account..." });
+
+      const result = createLocalAccount({
+        firstName,
+        lastName,
+        email,
+        password,
+      });
+
+      if (!result.ok) {
+        setStatus({
+          type: "error",
+          message: result.message,
+        });
+        return;
+      }
+
+      navigate("/");
       return;
     }
 
@@ -63,43 +103,6 @@ export default function Login() {
     navigate("/");
   }
 
-  function handleCreateAccount() {
-    if (isSubmitting) {
-      return;
-    }
-
-    if (!firstName || !lastName || !email || !password) {
-      setStatus({
-        type: "error",
-        message: "Enter your first name, last name, email, and password.",
-      });
-      return;
-    }
-
-    setStatus({ type: "loading", message: "Creating account..." });
-
-    const result = createLocalAccount({
-      firstName,
-      lastName,
-      email,
-      password,
-    });
-
-    if (!result.ok) {
-      setStatus({
-        type: "error",
-        message: result.message,
-      });
-      return;
-    }
-
-    navigate("/");
-  }
-
-  function handleContinueAsGuest() {
-    navigate("/");
-  }
-
   function handleLogout() {
     signOutLocalAccount();
     navigate("/login");
@@ -120,14 +123,6 @@ export default function Login() {
               <p className="mt-4 max-w-xl text-sm leading-6 text-stone-600">
                 Sign in to keep this browser's preparedness profile organized locally.
               </p>
-
-              <div className="mt-8 rounded-2xl border border-stone-200 bg-white/80 p-5">
-                <p className="text-sm font-medium text-stone-900">Why this page exists</p>
-                <p className="mt-2 text-sm leading-6 text-stone-600">
-                  Accounts, session state, and profile data are stored in localStorage. ZIP code
-                  risk lookup still uses the configured Supabase data source.
-                </p>
-              </div>
             </div>
 
             <div className="p-8 sm:p-10">
@@ -149,15 +144,6 @@ export default function Login() {
 
                     <button
                       type="button"
-                      onClick={() => navigate("/")}
-                      disabled={isSubmitting}
-                      className="inline-flex w-full items-center justify-center rounded-full bg-forest px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-emerald-900"
-                    >
-                      Go to Home
-                    </button>
-
-                    <button
-                      type="button"
                       onClick={handleLogout}
                       disabled={isSubmitting}
                       className="inline-flex w-full items-center justify-center rounded-full border border-stone-200 bg-white px-5 py-3 text-sm font-semibold text-stone-800 transition-colors hover:border-stone-300 hover:bg-stone-50"
@@ -167,28 +153,44 @@ export default function Login() {
                   </div>
                 ) : (
                   <>
-                    <div className="space-y-5">
-                      <div className="grid gap-5 sm:grid-cols-2">
-                        <Field
-                          id="firstName"
-                          label="First name"
-                          type="text"
-                          value={firstName}
-                          onChange={(event) => setFirstName(event.target.value)}
-                          placeholder="First name"
-                          autoComplete="given-name"
-                        />
+                    <div>
+                      <p className="text-sm font-medium uppercase tracking-[0.18em] text-leaf">
+                        {isCreateMode ? "Create account" : "Login"}
+                      </p>
+                      <h1 className="mt-4 text-3xl font-semibold text-stone-900 sm:text-4xl">
+                        {isCreateMode ? "Create your account" : "Welcome back"}
+                      </h1>
+                      <p className="mt-4 max-w-xl text-sm leading-6 text-stone-600">
+                        {isCreateMode
+                          ? "Create a local account for this browser."
+                          : "Sign in to keep this browser's preparedness profile organized locally."}
+                      </p>
+                    </div>
 
-                        <Field
-                          id="lastName"
-                          label="Last name"
-                          type="text"
-                          value={lastName}
-                          onChange={(event) => setLastName(event.target.value)}
-                          placeholder="Last name"
-                          autoComplete="family-name"
-                        />
-                      </div>
+                    <div className="space-y-5">
+                      {isCreateMode ? (
+                        <div className="grid gap-5 sm:grid-cols-2">
+                          <Field
+                            id="firstName"
+                            label="First name"
+                            type="text"
+                            value={firstName}
+                            onChange={(event) => setFirstName(event.target.value)}
+                            placeholder="First name"
+                            autoComplete="given-name"
+                          />
+
+                          <Field
+                            id="lastName"
+                            label="Last name"
+                            type="text"
+                            value={lastName}
+                            onChange={(event) => setLastName(event.target.value)}
+                            placeholder="Last name"
+                            autoComplete="family-name"
+                          />
+                        </div>
+                      ) : null}
 
                       <Field
                         id="email"
@@ -214,35 +216,21 @@ export default function Login() {
                     <div className="mt-8 flex flex-col gap-3">
                       <button
                         type="button"
-                        onClick={handleSignIn}
+                        onClick={handleSubmit}
                         disabled={isSubmitting}
                         className="inline-flex items-center justify-center rounded-full bg-forest px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-emerald-900"
                       >
-                        Sign In
+                        {isCreateMode ? "Create Account" : "Sign In"}
                       </button>
-
                       <button
                         type="button"
-                        onClick={handleCreateAccount}
+                        onClick={() => handleModeChange(!isCreateMode)}
                         disabled={isSubmitting}
-                        className="inline-flex items-center justify-center rounded-full border border-stone-200 bg-white px-5 py-3 text-sm font-semibold text-stone-800 transition-colors hover:border-stone-300 hover:bg-stone-50"
+                        className="self-center text-sm font-medium text-stone-600 transition-colors hover:text-stone-900"
                       >
-                        Create Account
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={handleContinueAsGuest}
-                        disabled={isSubmitting}
-                        className="inline-flex items-center justify-center rounded-full border border-dashed border-stone-300 bg-transparent px-5 py-3 text-sm font-semibold text-stone-700 transition-colors hover:border-stone-400 hover:bg-stone-50"
-                      >
-                        Continue as Guest
+                        {isCreateMode ? "Already have an account? Sign in" : "Create Account"}
                       </button>
                     </div>
-
-                    <p className="mt-6 text-xs leading-5 text-stone-500">
-                      Local accounts stay on this device and are not synced across browsers.
-                    </p>
 
                     {status.message ? (
                       <div
@@ -262,20 +250,6 @@ export default function Login() {
                   </>
                 )}
 
-                <div className="mt-8 flex items-center justify-between gap-4 border-t border-stone-100 pt-5 text-sm">
-                  <Link
-                    to="/"
-                    className="font-medium text-stone-600 no-underline transition-colors hover:text-stone-900"
-                  >
-                    Go to Home
-                  </Link>
-                  <Link
-                    to="/reports"
-                    className="font-medium text-stone-600 no-underline transition-colors hover:text-stone-900"
-                  >
-                    Open Reports
-                  </Link>
-                </div>
               </div>
             </div>
           </div>

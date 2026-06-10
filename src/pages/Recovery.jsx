@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 import RecoveryWorkspace from "../components/recovery/RecoveryWorkspace";
 import FemaAssistanceEstimateForm from "../components/recovery/FemaAssistanceEstimateForm";
 import { getFemaAssistanceEstimate } from "../services/femaAssistanceEstimateService";
@@ -239,7 +240,7 @@ function FEMAResultCard({ result, isLoading }) {
   );
 }
 
-export default function Recovery() {
+function RecoveryContent() {
   const [activeSection, setActiveSection] = useState("workspace");
   const [femaEstimatorAnswers, setFemaEstimatorAnswers] = useState(() => ({
     ...INITIAL_FEMA_ESTIMATOR_ANSWERS,
@@ -390,4 +391,10 @@ export default function Recovery() {
       </div>
     </main>
   );
+}
+
+export default function Recovery() {
+  const { user } = useAuth();
+
+  return <RecoveryContent key={user?.id ?? "guest"} />;
 }

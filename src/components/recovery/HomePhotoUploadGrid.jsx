@@ -1,6 +1,9 @@
 import { useMemo, useRef, useState } from "react";
-
-const STORAGE_KEY = "homePhotoEvidence";
+import { useAuth } from "../../context/AuthContext";
+import {
+  readHomePhotoEvidence,
+  saveHomePhotoEvidence,
+} from "../../services/userInfoSyncService";
 const MAX_PHOTOS = 4;
 const OUTPUT_SIZE = 512;
 
@@ -21,20 +24,7 @@ function normalizePhotos(value) {
 }
 
 function readStoredPhotos() {
-  if (typeof window === "undefined") {
-    return [];
-  }
-
-  try {
-    const rawValue = window.localStorage.getItem(STORAGE_KEY);
-    if (!rawValue) {
-      return [];
-    }
-
-    return normalizePhotos(JSON.parse(rawValue));
-  } catch {
-    return [];
-  }
+  return normalizePhotos(readHomePhotoEvidence());
 }
 
 function createPhotoId() {
@@ -46,12 +36,8 @@ function createPhotoId() {
 }
 
 function persistPhotos(nextPhotos) {
-  if (typeof window === "undefined") {
-    return { ok: true };
-  }
-
   try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(nextPhotos));
+    saveHomePhotoEvidence(nextPhotos);
     return { ok: true };
   } catch {
     return {
@@ -137,7 +123,7 @@ async function processImageFile(file) {
   };
 }
 
-export default function HomePhotoUploadGrid() {
+function HomePhotoUploadGridContent() {
   const inputRefs = useRef([]);
   const [photos, setPhotos] = useState(() => readStoredPhotos());
   const [savedPhotos, setSavedPhotos] = useState(() => readStoredPhotos());
@@ -353,4 +339,10 @@ export default function HomePhotoUploadGrid() {
       </div>
     </section>
   );
+}
+
+export default function HomePhotoUploadGrid() {
+  const { user } = useAuth();
+
+  return <HomePhotoUploadGridContent key={user?.id ?? "guest"} />;
 }

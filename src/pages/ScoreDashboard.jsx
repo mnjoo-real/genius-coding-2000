@@ -1,10 +1,9 @@
 import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import Button from '../components/ui/Button';
 import ScoreGauge from '../components/score/ScoreGauge';
 import WeaknessList from '../components/score/WeaknessList';
 import RecommendationCard from '../components/recommendations/RecommendationCard';
-import RecoveryPreviewCard from '../components/recovery/RecoveryPreviewCard';
 import { calculateScore } from '../utils/calculateScore';
 import { getProjectedScoreDetails } from '../utils/calculateProjectedScore';
 import { generateRecommendations } from '../utils/generateRecommendations';
@@ -190,16 +189,15 @@ export default function ScoreDashboard() {
                     />
                   ))
                 )}
+
+                <Link
+                  to="/recovery"
+                  className="mt-6 inline-flex w-fit self-end items-center justify-center rounded-full bg-emerald-700 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-emerald-800"
+                >
+                  Open Recovery Center
+                </Link>
               </div>
             </div>
-
-            {/* ── Recovery CTA (full-width below both columns) ─────── */}
-            <section className="mt-14">
-              <p className="text-xs font-medium uppercase tracking-widest text-stone-400 mb-3">
-                Recovery Center
-              </p>
-              <RecoveryPreviewCard />
-            </section>
           </>
         )}
 

@@ -3,6 +3,10 @@ import { getLocalAuthSession } from "./localAuthService";
 const PROFILE_ID_STORAGE_KEY = "profile_id";
 const PROFILE_STORAGE_PREFIX = "canopyProfile";
 const RECOVERY_PROFILE_STORAGE_KEY = "recoveryProfile";
+const RECOVERY_STORAGE_PREFIX = "recoveryData";
+const RECOVERY_DAMAGE_RECORD_STORAGE_KEY = "recoveryDamageRecord";
+const HOME_PHOTO_CHECKLIST_STORAGE_KEY = "homePhotoChecklist";
+const HOME_PHOTO_EVIDENCE_STORAGE_KEY = "homePhotoEvidence";
 const LEGACY_RECOVERY_PROFILE_KEYS = ["disasterProfile", "aidEligibilityAnswers"];
 const PROFILE_DATA_KEYS = {
   selectedZipCode: "selectedZipCode",
@@ -37,6 +41,11 @@ function getScopedStorageKey(key) {
   return scope.type === "guest" ? key : `${PROFILE_STORAGE_PREFIX}:${scope.id}:${key}`;
 }
 
+function getScopedRecoveryStorageKey(key) {
+  const scope = getProfileScope();
+  return scope.type === "guest" ? key : `${RECOVERY_STORAGE_PREFIX}:${scope.id}:${key}`;
+}
+
 function readStorageValue(key) {
   if (typeof window === "undefined") {
     return null;
@@ -69,6 +78,34 @@ function writeStorageValue(key, value) {
 
   if (key === "selectedZipCode") {
     window.localStorage.setItem(storageKey, String(value));
+    return;
+  }
+
+  window.localStorage.setItem(storageKey, JSON.stringify(value));
+}
+
+function readScopedRecoveryValue(key) {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const rawValue = window.localStorage.getItem(getScopedRecoveryStorageKey(key));
+  if (rawValue == null) {
+    return null;
+  }
+
+  return safeParseJson(rawValue) ?? rawValue;
+}
+
+function writeScopedRecoveryValue(key, value) {
+  if (!canUseLocalStorage()) {
+    return;
+  }
+
+  const storageKey = getScopedRecoveryStorageKey(key);
+
+  if (value == null) {
+    window.localStorage.removeItem(storageKey);
     return;
   }
 
@@ -264,6 +301,48 @@ export function clearPreparednessProfile() {
 export function clearRecoveryProfile() {
   writeStorageValue(PROFILE_DATA_KEYS.recoveryProfile, null);
   clearLegacyRecoveryProfile();
+}
+
+export function readRecoveryDamageRecord() {
+  const recoveryDamageRecord = readScopedRecoveryValue(RECOVERY_DAMAGE_RECORD_STORAGE_KEY);
+  return recoveryDamageRecord && typeof recoveryDamageRecord === "object" && !Array.isArray(recoveryDamageRecord)
+    ? recoveryDamageRecord
+    : {};
+}
+
+export function saveRecoveryDamageRecord(recoveryDamageRecord) {
+  const normalizedRecoveryDamageRecord =
+    recoveryDamageRecord && typeof recoveryDamageRecord === "object" && !Array.isArray(recoveryDamageRecord)
+      ? recoveryDamageRecord
+      : {};
+
+  writeScopedRecoveryValue(RECOVERY_DAMAGE_RECORD_STORAGE_KEY, normalizedRecoveryDamageRecord);
+}
+
+export function readHomePhotoChecklist() {
+  const homePhotoChecklist = readScopedRecoveryValue(HOME_PHOTO_CHECKLIST_STORAGE_KEY);
+  return homePhotoChecklist && typeof homePhotoChecklist === "object" && !Array.isArray(homePhotoChecklist)
+    ? homePhotoChecklist
+    : {};
+}
+
+export function saveHomePhotoChecklist(homePhotoChecklist) {
+  const normalizedHomePhotoChecklist =
+    homePhotoChecklist && typeof homePhotoChecklist === "object" && !Array.isArray(homePhotoChecklist)
+      ? homePhotoChecklist
+      : {};
+
+  writeScopedRecoveryValue(HOME_PHOTO_CHECKLIST_STORAGE_KEY, normalizedHomePhotoChecklist);
+}
+
+export function readHomePhotoEvidence() {
+  const homePhotoEvidence = readScopedRecoveryValue(HOME_PHOTO_EVIDENCE_STORAGE_KEY);
+  return Array.isArray(homePhotoEvidence) ? homePhotoEvidence : [];
+}
+
+export function saveHomePhotoEvidence(homePhotoEvidence) {
+  const normalizedHomePhotoEvidence = Array.isArray(homePhotoEvidence) ? homePhotoEvidence : [];
+  writeScopedRecoveryValue(HOME_PHOTO_EVIDENCE_STORAGE_KEY, normalizedHomePhotoEvidence);
 }
 
 export function buildRecoveryBaseAnswers(preparednessSnapshot = {}) {

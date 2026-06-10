@@ -1,14 +1,16 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 import { homeQuestions } from "../data/homeQuestions";
 import { calculateScore } from "../utils/calculateScore";
-import { readPreparednessSnapshot } from "../services/userInfoSyncService";
+import {
+  readPreparednessSnapshot,
+  readRecoveryDamageRecord,
+} from "../services/userInfoSyncService";
 import {
   formatRiskScore,
   getRelativeRiskValue,
 } from "../utils/riskDisplay";
-
-const RECOVERY_DAMAGE_RECORD_KEY = "recoveryDamageRecord";
 
 const REPORT_TYPES = [
   {
@@ -42,31 +44,6 @@ const CATEGORY_FIELDS = [
   { key: "ecoMitigationScore", label: "Eco-mitigation" },
   { key: "recoveryPreparednessScore", label: "Recovery preparedness" },
 ];
-
-function safeParseObject(rawValue) {
-  if (!rawValue) {
-    return {};
-  }
-
-  try {
-    const parsed = JSON.parse(rawValue);
-    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-      return parsed;
-    }
-  } catch {
-    // Use the empty fallback below.
-  }
-
-  return {};
-}
-
-function readRecoveryDamageRecord() {
-  if (typeof window === "undefined") {
-    return {};
-  }
-
-  return safeParseObject(window.localStorage.getItem(RECOVERY_DAMAGE_RECORD_KEY));
-}
 
 function formatLabel(value) {
   if (!value) {
@@ -503,7 +480,7 @@ function renderReportHtml(title, reportMarkup) {
     <meta charset="utf-8" />
     <title>${title}</title>
     <style>
-      body { font-family: Inter, Arial, sans-serif; color: #1c1917; margin: 32px; }
+      body { font-family: "Nunito Sans", sans-serif; color: #1c1917; margin: 32px; }
       h1, h2, h3 { margin: 0; }
       .section { border: 1px solid #e7e5e4; border-radius: 18px; padding: 22px; margin: 18px 0; }
       .muted { color: #57534e; }
@@ -597,7 +574,7 @@ function buildPrintableReport(selectedReport, data) {
   );
 }
 
-export default function Reports() {
+function ReportsContent() {
   const [preparednessSnapshot] = useState(() => readPreparednessSnapshot());
   const [recoveryRecord] = useState(() => readRecoveryDamageRecord());
   const [selectedReport, setSelectedReport] = useState("preparedness");
@@ -723,4 +700,10 @@ export default function Reports() {
       </div>
     </main>
   );
+}
+
+export default function Reports() {
+  const { user } = useAuth();
+
+  return <ReportsContent key={user?.id ?? "guest"} />;
 }
