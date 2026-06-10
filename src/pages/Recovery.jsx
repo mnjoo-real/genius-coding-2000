@@ -26,7 +26,7 @@ function stripBaseAnswers(answers, baseAnswers) {
 
   const sanitizedAnswers = {};
   Object.entries(answers).forEach(([key, value]) => {
-    if (!(key in baseAnswers)) {
+    if (!(key in baseAnswers) && key !== "femaEstimator") {
       sanitizedAnswers[key] = value;
     }
   });
@@ -83,13 +83,14 @@ function formatRate(value) {
 
 export default function Recovery() {
   const [preparednessSnapshot] = useState(() => readPreparednessSnapshot());
+  const [initialRecoveryProfile] = useState(() => readRecoveryProfile());
   const baseRecoveryAnswers = useMemo(
     () => buildRecoveryBaseAnswers(preparednessSnapshot),
     [preparednessSnapshot]
   );
   const initialRecoveryAnswers = useMemo(
-    () => stripBaseAnswers(readRecoveryProfile(), baseRecoveryAnswers),
-    [baseRecoveryAnswers]
+    () => stripBaseAnswers(initialRecoveryProfile, baseRecoveryAnswers),
+    [baseRecoveryAnswers, initialRecoveryProfile]
   );
   const [recoveryAnswers, setRecoveryAnswers] = useState(initialRecoveryAnswers);
   const [hasMatched, setHasMatched] = useState(false);
@@ -97,8 +98,13 @@ export default function Recovery() {
   const [activeRecoveryTierId, setActiveRecoveryTierId] = useState(
     recoveryQuestionTiers[0]?.id ?? null
   );
-  const [femaEstimatorAnswers, setFemaEstimatorAnswers] = useState(
-    INITIAL_FEMA_ESTIMATOR_ANSWERS
+  const [femaEstimatorAnswers, setFemaEstimatorAnswers] = useState(() =>
+    ({
+      ...INITIAL_FEMA_ESTIMATOR_ANSWERS,
+      ...(initialRecoveryProfile && typeof initialRecoveryProfile === "object"
+        ? initialRecoveryProfile.femaEstimator
+        : {}),
+    })
   );
   const [femaEstimateResult, setFemaEstimateResult] = useState(null);
   const [femaEstimateLoading, setFemaEstimateLoading] = useState(false);
@@ -116,14 +122,25 @@ export default function Recovery() {
   );
 
   useEffect(() => {
+    const hasFemaEstimatorAnswers = Object.values(femaEstimatorAnswers).some((value) => {
+      return value !== "" && value !== null && value !== undefined;
+    });
+
     if (Object.keys(recoveryAnswers).length === 0) {
-      clearRecoveryProfile();
+      if (hasFemaEstimatorAnswers) {
+        saveRecoveryProfile({ femaEstimator: femaEstimatorAnswers }, { replace: true });
+      } else {
+        clearRecoveryProfile();
+      }
       return;
     }
 
-    saveRecoveryProfile(recoveryAnswers);
+    saveRecoveryProfile({
+      ...recoveryAnswers,
+      femaEstimator: femaEstimatorAnswers,
+    }, { replace: true });
     clearLegacyRecoveryProfile();
-  }, [recoveryAnswers]);
+  }, [femaEstimatorAnswers, recoveryAnswers]);
 
   const matchedPrograms = useMemo(() => {
     if (!hasMatched || !hasDisasterProfile) {
@@ -201,6 +218,7 @@ export default function Recovery() {
 
     clearRecoveryProfile();
     setRecoveryAnswers({});
+    setFemaEstimatorAnswers(INITIAL_FEMA_ESTIMATOR_ANSWERS);
     setHasMatched(false);
     setIsEditingDisasterProfile(false);
     setActiveRecoveryTierId(null);

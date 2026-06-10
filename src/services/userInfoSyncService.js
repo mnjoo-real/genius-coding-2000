@@ -90,6 +90,27 @@ function readLegacyRecoveryProfile() {
   return null;
 }
 
+function normalizeObjectValue(value) {
+  return value && typeof value === "object" && !Array.isArray(value) ? value : null;
+}
+
+function mergeRecoveryProfile(existingProfile, nextProfile) {
+  const existingRecoveryProfile = normalizeObjectValue(existingProfile) ?? {};
+  const nextRecoveryProfile = normalizeObjectValue(nextProfile) ?? {};
+
+  const mergedRecoveryProfile = {
+    ...existingRecoveryProfile,
+    ...nextRecoveryProfile,
+  };
+
+  if (!Object.prototype.hasOwnProperty.call(nextRecoveryProfile, "femaEstimator") &&
+      Object.prototype.hasOwnProperty.call(existingRecoveryProfile, "femaEstimator")) {
+    mergedRecoveryProfile.femaEstimator = existingRecoveryProfile.femaEstimator;
+  }
+
+  return mergedRecoveryProfile;
+}
+
 function createLocalProfileId() {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
     return crypto.randomUUID();
@@ -193,8 +214,35 @@ export function readRecoveryProfile() {
   return readLegacyRecoveryProfile() || {};
 }
 
-export function saveRecoveryProfile(recoveryProfile) {
-  writeStorageValue(PROFILE_DATA_KEYS.recoveryProfile, recoveryProfile);
+export function saveRecoveryProfile(recoveryProfile, options = {}) {
+  const normalizedRecoveryProfile = normalizeObjectValue(recoveryProfile) ?? {};
+
+  if (options && options.replace) {
+    writeStorageValue(PROFILE_DATA_KEYS.recoveryProfile, normalizedRecoveryProfile);
+    return;
+  }
+
+  const existingRecoveryProfile = readRecoveryProfile();
+  writeStorageValue(
+    PROFILE_DATA_KEYS.recoveryProfile,
+    mergeRecoveryProfile(existingRecoveryProfile, normalizedRecoveryProfile),
+  );
+}
+
+export function readRecoveryFemaEstimator() {
+  const recoveryProfile = readRecoveryProfile();
+  const femaEstimator = normalizeObjectValue(recoveryProfile.femaEstimator);
+
+  return femaEstimator || {};
+}
+
+export function saveRecoveryFemaEstimator(femaEstimator) {
+  const existingRecoveryProfile = readRecoveryProfile();
+  const nextRecoveryProfile = mergeRecoveryProfile(existingRecoveryProfile, {
+    femaEstimator: normalizeObjectValue(femaEstimator) || {},
+  });
+
+  writeStorageValue(PROFILE_DATA_KEYS.recoveryProfile, nextRecoveryProfile);
 }
 
 export function clearLegacyRecoveryProfile() {
