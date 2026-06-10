@@ -5,7 +5,7 @@ const navLinks = [
   { label: 'Home',      to: '/' },
   { label: 'My Canopy',  to: '/dashboard' },
   { label: 'Recovery',  to: '/recovery' },
-  { label: 'My info',  to: '/user-info' },
+  { label: 'My Info',  to: '/user-info' },
   { label: 'Login',  to: '/login' },
 ];
 
