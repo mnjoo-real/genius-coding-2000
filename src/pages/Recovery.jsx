@@ -306,14 +306,13 @@ export default function Recovery() {
           <div className="flex flex-col gap-3">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-700">
-                FEMA Estimate
+                FEMA Assistance Estimate
               </p>
               <h2 className="mt-2 text-2xl font-semibold text-stone-900">
-                Historical FEMA IHP estimate
+                FEMA Assistance Estimate
               </h2>
               <p className="mt-3 max-w-3xl text-sm leading-6 text-stone-600">
-                Use this form to estimate assistance from historical FEMA Individuals and
-                Households Program records for a damaged home.
+                Estimate a historical FEMA IHP assistance range based on similar past cases.
               </p>
             </div>
 
@@ -447,7 +446,7 @@ export default function Recovery() {
 
         {shouldShowBaseContextCard ? (
           <section className="rounded-3xl border border-stone-200 bg-white p-6 shadow-sm">
-            <h2 className="text-2xl font-semibold text-stone-900">Aid Eligibility Check</h2>
+            <h2 className="text-2xl font-semibold text-stone-900">Recovery Planning Checklist</h2>
             <p className="mt-3 max-w-3xl text-sm leading-6 text-stone-600">
               We already know some of this from My Info, so the checklist only asks what is still
               missing.
@@ -502,7 +501,7 @@ export default function Recovery() {
                 onClick={handleCreateDisasterProfile}
                 className="inline-flex items-center justify-center rounded-full bg-emerald-700 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-emerald-800"
               >
-                Continue Aid Eligibility Check
+                Continue Recovery Planning
               </button>
               <Link
                 to="/dashboard"
