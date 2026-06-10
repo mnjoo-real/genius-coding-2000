@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useId, useState } from "react";
 
 const STORAGE_KEY = "recoveryDamageRecord";
 
@@ -104,51 +104,58 @@ function readFileAsDataUrl(file) {
   });
 }
 
-function PhotoTile({ item, label, onUpload, onRemove }) {
-  const inputId = `${label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${item?.id || "empty"}`;
+async function readFilesAsDataUrls(files) {
+  const fileList = Array.from(files || []).filter(Boolean);
+  const uploads = await Promise.all(fileList.map((file) => readFileAsDataUrl(file)));
+  return uploads.filter(Boolean);
+}
 
+function PhotoTile({ item, onRemove }) {
   return (
     <div className="group relative aspect-square overflow-hidden rounded-2xl border border-stone-200 bg-stone-50">
-      {item ? (
-        <>
-          <img src={item.url} alt={item.name} className="h-full w-full object-cover" />
-          <div className="absolute inset-x-0 bottom-0 bg-stone-950/70 px-3 py-2">
-            <p className="truncate text-xs font-medium text-white">{item.name}</p>
-          </div>
-          <button
-            type="button"
-            onClick={onRemove}
-            className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full border border-white/60 bg-white/90 text-sm font-semibold text-stone-700 shadow-sm transition-colors hover:bg-white"
-            aria-label={`Remove ${item.name}`}
-          >
-            x
-          </button>
-        </>
-      ) : (
-        <label
-          htmlFor={inputId}
-          className="flex h-full w-full cursor-pointer items-center justify-center text-4xl font-light text-stone-400 transition-colors hover:bg-emerald-50 hover:text-emerald-700"
-          aria-label={`Upload ${label}`}
-        >
-          +
-          <input
-            id={inputId}
-            type="file"
-            accept="image/*"
-            onChange={(event) => onUpload(event.target.files?.[0] || null)}
-            className="sr-only"
-          />
-        </label>
-      )}
+      <img src={item.url} alt={item.name} className="h-full w-full object-cover" />
+      <div className="absolute inset-x-0 bottom-0 bg-stone-950/70 px-3 py-2">
+        <p className="truncate text-xs font-medium text-white">{item.name}</p>
+      </div>
+      <button
+        type="button"
+        onClick={onRemove}
+        className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full border border-white/60 bg-white/90 text-sm font-semibold text-stone-700 shadow-sm transition-colors hover:bg-white"
+        aria-label={`Remove ${item.name}`}
+      >
+        x
+      </button>
     </div>
   );
 }
 
-function PhotoUploadGrid({ title, description, items, minimumSlots = 4, onUpload, onRemove }) {
-  const slots = useMemo(() => {
-    const targetLength = Math.max(minimumSlots, items.length + 1);
-    return Array.from({ length: targetLength }, (_, index) => items[index] || null);
-  }, [items, minimumSlots]);
+function AddPhotoButton({ label, onClick, inputId }) {
+  return (
+    <label
+      htmlFor={inputId}
+      className="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700 transition-colors hover:border-emerald-300 hover:bg-emerald-100"
+      aria-label={label}
+    >
+      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-600 text-xl font-semibold leading-none text-white shadow-sm transition-transform hover:scale-105">
+        +
+      </span>
+      <input
+        id={inputId}
+        type="file"
+        accept="image/*"
+        multiple
+        onChange={(event) => {
+          onClick(event);
+          event.target.value = "";
+        }}
+        className="sr-only"
+      />
+    </label>
+  );
+}
+
+function PhotoUploadGrid({ title, description, items, onAdd, onRemove }) {
+  const inputId = useId();
 
   return (
     <section className="rounded-3xl border border-stone-200 bg-white p-5 shadow-sm">
@@ -157,19 +164,26 @@ function PhotoUploadGrid({ title, description, items, minimumSlots = 4, onUpload
           <h3 className="text-xl font-semibold text-stone-900">{title}</h3>
           <p className="mt-1 max-w-2xl text-sm leading-6 text-stone-600">{description}</p>
         </div>
-        <p className="text-sm font-medium text-stone-600">{items.length} uploaded</p>
+        <div className="flex items-center gap-3">
+          <p className="text-sm font-medium text-stone-600">{items.length} uploaded</p>
+          <AddPhotoButton
+            label={`Add ${title}`}
+            inputId={`${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${inputId}`}
+            onClick={onAdd}
+          />
+        </div>
       </div>
 
-      <div className="mt-5 grid grid-cols-2 gap-4">
-        {slots.map((item, index) => (
-          <PhotoTile
-            key={item?.id || `empty-${index}`}
-            item={item}
-            label={`${title} ${index + 1}`}
-            onUpload={(file) => onUpload(file, index)}
-            onRemove={() => onRemove(index)}
-          />
-        ))}
+      <div className="mt-5 max-h-[28rem] overflow-y-auto pr-1">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-4">
+          {items.map((item, index) => (
+            <PhotoTile
+              key={item.id}
+              item={item}
+              onRemove={() => onRemove(index)}
+            />
+          ))}
+        </div>
       </div>
     </section>
   );
@@ -213,23 +227,18 @@ export default function RecoveryWorkspace() {
     setSaveStatus("");
   };
 
-  const handlePhotoUpload = async (kind, file, index) => {
-    if (!file) {
+  const handlePhotoAdd = async (kind, files) => {
+    const nextItems = await readFilesAsDataUrls(files);
+    if (!nextItems.length) {
       return;
     }
 
-    const imageItem = await readFileAsDataUrl(file);
     const field = kind === "home" ? "homePhotos" : "receiptPhotos";
 
-    setRecord((currentRecord) => {
-      const nextItems = [...currentRecord[field]];
-      nextItems[index] = imageItem;
-
-      return {
-        ...currentRecord,
-        [field]: nextItems.filter(Boolean),
-      };
-    });
+    setRecord((currentRecord) => ({
+      ...currentRecord,
+      [field]: [...currentRecord[field], ...nextItems],
+    }));
     setSaveStatus("");
   };
 
@@ -262,19 +271,17 @@ export default function RecoveryWorkspace() {
       <div className="grid gap-6 lg:grid-cols-2">
         <PhotoUploadGrid
           title="Damaged home photos"
-          description="Start with four core photos. Add more if you need additional rooms, angles, or damage details."
+          description="Upload one or many photos of rooms, angles, and visible damage. Use the green + button to add more at any time."
           items={record.homePhotos}
-          minimumSlots={4}
-          onUpload={(file, index) => handlePhotoUpload("home", file, index)}
+          onAdd={(event) => handlePhotoAdd("home", event.target.files)}
           onRemove={(index) => handlePhotoRemove("home", index)}
         />
 
         <PhotoUploadGrid
           title="Receipt photos"
-          description="Upload receipts for hotel stays, emergency supplies, temporary repairs, food replacement, or transportation."
+          description="Upload one or many receipts for hotel stays, emergency supplies, temporary repairs, food replacement, or transportation."
           items={record.receiptPhotos}
-          minimumSlots={4}
-          onUpload={(file, index) => handlePhotoUpload("receipt", file, index)}
+          onAdd={(event) => handlePhotoAdd("receipt", event.target.files)}
           onRemove={(index) => handlePhotoRemove("receipt", index)}
         />
       </div>
