@@ -187,13 +187,8 @@ export default function ScoreDashboard() {
                     <span className="text-sm text-stone-500">Projected score:</span>
                     <span className="text-2xl font-bold text-leaf">
                       {calculateProjectedScore(
-                        scoreData.totalScore,
-                        recommendations
-                          .filter(r => selectedActionIds.includes(r.id))
-                          .map(r => ({
-                            ...r,
-                            scoreIncrease: r.pointsGain ?? r.scoreIncrease,
-                          }))
+                        scoreData,
+                        recommendations.filter(r => selectedActionIds.includes(r.id))
                       )}
                     </span>
                   </div>
