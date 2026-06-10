@@ -81,6 +81,57 @@ function getRiskValue(regionalRisk, key) {
   return value == null || value === "" ? "Not provided" : String(value);
 }
 
+function getRiskCardStyle(regionalRisk, key) {
+  if (!regionalRisk || typeof regionalRisk !== "object") {
+    return {
+      label: "Unknown",
+      className: "border-stone-200 bg-stone-50",
+      labelClassName: "text-stone-500",
+      valueClassName: "text-stone-900",
+      badgeClassName: "border-stone-200 bg-white text-stone-500",
+    };
+  }
+
+  const numericValue = Number(regionalRisk[key]);
+  if (!Number.isFinite(numericValue)) {
+    return {
+      label: "Unknown",
+      className: "border-stone-200 bg-stone-50",
+      labelClassName: "text-stone-500",
+      valueClassName: "text-stone-900",
+      badgeClassName: "border-stone-200 bg-white text-stone-500",
+    };
+  }
+
+  if (numericValue >= 75) {
+    return {
+      label: "High",
+      className: "border-red-200 bg-red-50",
+      labelClassName: "text-red-700",
+      valueClassName: "text-red-700",
+      badgeClassName: "border-red-200 bg-white/70 text-red-700",
+    };
+  }
+
+  if (numericValue >= 45) {
+    return {
+      label: "Medium",
+      className: "border-amber-200 bg-amber-50",
+      labelClassName: "text-amber-700",
+      valueClassName: "text-amber-700",
+      badgeClassName: "border-amber-200 bg-white/70 text-amber-700",
+    };
+  }
+
+  return {
+    label: "Low",
+    className: "border-leaf/30 bg-moss/40",
+    labelClassName: "text-forest",
+    valueClassName: "text-forest",
+    badgeClassName: "border-leaf/30 bg-white/70 text-forest",
+  };
+}
+
 function getCategoryScore(scoreData, key) {
   const value = scoreData?.categoryScores?.[key];
   return typeof value === "number" ? value : 0;
@@ -309,19 +360,32 @@ export default function UserInfo() {
                   </p>
                 </div>
 
-                {RISK_FIELDS.map((risk) => (
-                  <div
-                    key={risk.key}
-                    className="rounded-xl border border-stone-200 bg-stone-50 p-4"
-                  >
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-500">
-                      {risk.label}
-                    </p>
-                    <p className="mt-2 text-lg font-semibold text-stone-900">
-                      {getRiskValue(regionalRisk, risk.key)}
-                    </p>
-                  </div>
-                ))}
+                {RISK_FIELDS.map((risk) => {
+                  const style = getRiskCardStyle(regionalRisk, risk.key);
+
+                  return (
+                    <div
+                      key={risk.key}
+                      className={`rounded-xl border p-4 ${style.className}`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <p
+                          className={`text-[10px] font-semibold uppercase tracking-[0.16em] ${style.labelClassName}`}
+                        >
+                          {risk.label}
+                        </p>
+                        <span
+                          className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] ${style.badgeClassName}`}
+                        >
+                          {style.label}
+                        </span>
+                      </div>
+                      <p className={`mt-2 text-lg font-semibold ${style.valueClassName}`}>
+                        {getRiskValue(regionalRisk, risk.key)}
+                      </p>
+                    </div>
+                  );
+                })}
               </div>
             </section>
 
