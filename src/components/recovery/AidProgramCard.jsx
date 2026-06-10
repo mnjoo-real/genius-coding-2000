@@ -33,6 +33,63 @@ function getPreviewList(items) {
   return items.slice(0, 3);
 }
 
+function getExtraCount(items) {
+  if (!Array.isArray(items) || items.length <= 3) {
+    return 0;
+  }
+
+  return items.length - 3;
+}
+
+function getEligibilityLabel(status) {
+  switch (status) {
+    case "likely-eligible":
+      return "Likely match";
+    case "needs-verification":
+      return "Needs verification";
+    default:
+      return "Review needed";
+  }
+}
+
+function getEligibilityBadgeClass(status) {
+  switch (status) {
+    case "likely-eligible":
+      return "border border-emerald-200 bg-emerald-50 text-emerald-800";
+    case "needs-verification":
+      return "border border-amber-200 bg-amber-50 text-amber-800";
+    default:
+      return "border border-slate-200 bg-slate-50 text-slate-700";
+  }
+}
+
+function renderReasonSection(title, items, toneClasses) {
+  if (!Array.isArray(items) || items.length === 0) {
+    return null;
+  }
+
+  const previewItems = items.slice(0, 3);
+  const extraCount = getExtraCount(items);
+
+  return (
+    <div className={`rounded-2xl px-4 py-3 ${toneClasses}`}>
+      <p className="text-xs font-semibold uppercase tracking-[0.14em]">
+        {title}
+      </p>
+      <ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-6">
+        {previewItems.map((item) => (
+          <li key={item}>{item}</li>
+        ))}
+      </ul>
+      {extraCount > 0 ? (
+        <p className="mt-2 text-xs font-medium">
+          +{extraCount} more
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 export default function AidProgramCard({ program, disasterDate }) {
   if (!program) {
     return null;
@@ -59,6 +116,11 @@ export default function AidProgramCard({ program, disasterDate }) {
   const matchReasons = getPreviewList(program?.matchReasons);
   const cautionReasons = getPreviewList(program?.cautionReasons);
   const documentReadinessWarnings = getPreviewList(program?.documentReadinessWarnings);
+  const matchReasonsAll = Array.isArray(program?.matchReasons) ? program.matchReasons : [];
+  const cautionReasonsAll = Array.isArray(program?.cautionReasons) ? program.cautionReasons : [];
+  const documentWarningsAll = Array.isArray(program?.documentReadinessWarnings)
+    ? program.documentReadinessWarnings
+    : [];
 
   return (
     <article className="rounded-3xl border border-stone-200 bg-white p-5 shadow-sm">
@@ -68,11 +130,11 @@ export default function AidProgramCard({ program, disasterDate }) {
             {agency}
           </p>
           <span
-            className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${getAidStatusStyle(
-              eligibilityStatus
+            className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${getEligibilityBadgeClass(
+              eligibilityStatus,
             )}`}
           >
-            {getStatusLabel(eligibilityStatus)}
+            {getEligibilityLabel(eligibilityStatus)}
           </span>
         </div>
         <h3 className="text-lg font-semibold text-stone-900">{name}</h3>
@@ -98,44 +160,23 @@ export default function AidProgramCard({ program, disasterDate }) {
         </div>
       </dl>
 
-      {matchReasons.length > 0 ? (
-        <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-800">
-            Why this matched
-          </p>
-          <ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-6 text-emerald-900">
-            {matchReasons.map((reason) => (
-              <li key={reason}>{reason}</li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
+      {renderReasonSection(
+        "Why this matched",
+        matchReasonsAll,
+        "mt-5 border border-emerald-200 bg-emerald-50 text-emerald-900",
+      )}
 
-      {cautionReasons.length > 0 ? (
-        <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-amber-800">
-            Check before applying
-          </p>
-          <ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-6 text-amber-900">
-            {cautionReasons.map((reason) => (
-              <li key={reason}>{reason}</li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
+      {renderReasonSection(
+        "Check before applying",
+        cautionReasonsAll,
+        "mt-4 border border-amber-200 bg-amber-50 text-amber-900",
+      )}
 
-      {documentReadinessWarnings.length > 0 ? (
-        <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">
-            Documents to prepare
-          </p>
-          <ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-6 text-slate-700">
-            {documentReadinessWarnings.map((warning) => (
-              <li key={warning}>{warning}</li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
+      {renderReasonSection(
+        "Documents to prepare",
+        documentWarningsAll,
+        "mt-4 border border-slate-200 bg-slate-50 text-slate-700",
+      )}
 
       <div className="mt-5 rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm">
         {disasterDate ? (
