@@ -1,61 +1,153 @@
-const disasterTypeOptions = [
-  "Flood",
-  "Hurricane",
-  "Storm",
-  "Wildfire",
-  "Winter Storm",
-  "Heat",
-];
+import { recoveryQuestionTiers, recoveryQuestions } from "../../data/recoveryQuestions";
 
-const ownershipOptions = ["Owner", "Renter"];
+function normalizeAnswers(value) {
+  return value && typeof value === "object" ? value : {};
+}
 
-const insuranceOptions = ["Insured", "Partially Insured", "Uninsured"];
-
-const recoveryNeedOptions = [
-  "home-damage",
-  "temporary-housing",
-  "uninsured-loss",
-  "repair-needed",
-  "urgent-need",
-  "primary-residence",
-];
-
-function normalizeRecoveryNeeds(value) {
+function normalizeMultiValue(value) {
   return Array.isArray(value) ? value : [];
 }
 
-function buildNextAnswers(answers, patch) {
-  const nextRecoveryNeeds =
-    patch.recoveryNeeds !== undefined
-      ? normalizeRecoveryNeeds(patch.recoveryNeeds)
-      : normalizeRecoveryNeeds(answers.recoveryNeeds);
+function getOptionParts(option) {
+  if (typeof option === "string") {
+    return { value: option, label: option };
+  }
 
-  return {
+  if (option && typeof option === "object") {
+    const value = typeof option.value === "string" ? option.value : "";
+    const label =
+      typeof option.label === "string"
+        ? option.label
+        : value || "Option";
+
+    return { value, label };
+  }
+
+  return { value: "", label: "Option" };
+}
+
+function buildNextAnswers(answers, patch) {
+  const nextAnswers = {
     ...answers,
     ...patch,
-    recoveryNeeds: nextRecoveryNeeds,
   };
+
+  if (patch.recoveryNeeds !== undefined || answers.recoveryNeeds !== undefined) {
+    nextAnswers.recoveryNeeds = normalizeMultiValue(
+      patch.recoveryNeeds !== undefined ? patch.recoveryNeeds : answers.recoveryNeeds,
+    );
+  }
+
+  return nextAnswers;
+}
+
+function getQuestionMap() {
+  return new Map(recoveryQuestions.map((question) => [question.id, question]));
 }
 
 export default function AidEligibilityForm({
   answers = {},
   onChange,
+  setAnswers,
   onSubmit,
 }) {
-  const currentAnswers = answers && typeof answers === "object" ? answers : {};
-  const recoveryNeeds = normalizeRecoveryNeeds(currentAnswers.recoveryNeeds);
+  const currentAnswers = normalizeAnswers(answers);
+  const recoveryNeeds = normalizeMultiValue(currentAnswers.recoveryNeeds);
+  const questionMap = getQuestionMap();
+  const updateAnswers = onChange ?? setAnswers;
 
   const handleFieldChange = (field, value) => {
     const nextAnswers = buildNextAnswers(currentAnswers, { [field]: value });
-    onChange?.(nextAnswers);
+    updateAnswers?.(nextAnswers);
   };
 
-  const handleNeedToggle = (need) => {
-    const nextRecoveryNeeds = recoveryNeeds.includes(need)
-      ? recoveryNeeds.filter((item) => item !== need)
-      : [...recoveryNeeds, need];
+  const handleMultiToggle = (field, optionValue) => {
+    const currentValues = normalizeMultiValue(currentAnswers[field]);
+    const nextValues = currentValues.includes(optionValue)
+      ? currentValues.filter((item) => item !== optionValue)
+      : [...currentValues, optionValue];
 
-    onChange?.(buildNextAnswers(currentAnswers, { recoveryNeeds: nextRecoveryNeeds }));
+    updateAnswers?.(buildNextAnswers(currentAnswers, { [field]: nextValues }));
+  };
+
+  const renderField = (question) => {
+    const value = currentAnswers[question.id];
+    const helperText = question.helperText || "";
+    const options = Array.isArray(question.options) ? question.options : [];
+    const normalizedOptions = options.map(getOptionParts).filter((option) => option.value);
+
+    if (question.type === "text" || question.type === "date") {
+      return (
+        <label key={question.id} className="grid gap-2">
+          <span className="text-sm font-medium text-stone-700">{question.label}</span>
+          {helperText ? (
+            <p className="text-sm leading-6 text-stone-500">{helperText}</p>
+          ) : null}
+          <input
+            type={question.type}
+            value={typeof value === "string" ? value : ""}
+            onChange={(event) => handleFieldChange(question.id, event.target.value)}
+            className="rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm text-stone-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
+          />
+        </label>
+      );
+    }
+
+    if (question.type === "single") {
+      return (
+        <label key={question.id} className="grid gap-2">
+          <span className="text-sm font-medium text-stone-700">{question.label}</span>
+          {helperText ? (
+            <p className="text-sm leading-6 text-stone-500">{helperText}</p>
+          ) : null}
+          <select
+            value={typeof value === "string" ? value : ""}
+            onChange={(event) => handleFieldChange(question.id, event.target.value)}
+            className="rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm text-stone-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
+          >
+            <option value="">Select an option</option>
+            {normalizedOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      );
+    }
+
+    if (question.type === "multi") {
+      const selectedValues = normalizeMultiValue(value);
+
+      return (
+        <fieldset key={question.id} className="grid gap-3">
+          <legend className="text-sm font-medium text-stone-700">{question.label}</legend>
+          {helperText ? <p className="text-sm leading-6 text-stone-500">{helperText}</p> : null}
+          <div className="grid gap-3 sm:grid-cols-2">
+            {normalizedOptions.map((option) => {
+              const checked = selectedValues.includes(option.value);
+
+              return (
+                <label
+                  key={option.value}
+                  className="flex cursor-pointer items-center gap-3 rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm font-medium text-stone-700 transition hover:border-stone-300"
+                >
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() => handleMultiToggle(question.id, option.value)}
+                    className="h-4 w-4 rounded border-stone-300 text-emerald-600 focus:ring-emerald-500"
+                  />
+                  <span>{option.label}</span>
+                </label>
+              );
+            })}
+          </div>
+        </fieldset>
+      );
+    }
+
+    return null;
   };
 
   return (
@@ -68,93 +160,38 @@ export default function AidEligibilityForm({
       </div>
 
       <form
-        className="mt-6 grid gap-5"
+        className="mt-6 grid gap-6"
         onSubmit={(event) => {
           event.preventDefault();
-          onSubmit?.(currentAnswers);
+          onSubmit?.(buildNextAnswers(currentAnswers, { recoveryNeeds }));
         }}
       >
-        <label className="grid gap-2">
-          <span className="text-sm font-medium text-stone-700">Disaster Date</span>
-          <input
-            type="date"
-            value={currentAnswers.disasterDate || ""}
-            onChange={(event) => handleFieldChange("disasterDate", event.target.value)}
-            className="rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm text-stone-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
-          />
-        </label>
+        {recoveryQuestionTiers.map((tier) => {
+          const tierQuestions = Array.isArray(tier.questionIds) && tier.questionIds.length > 0
+            ? tier.questionIds
+                .map((questionId) => questionMap.get(questionId))
+                .filter(Boolean)
+            : recoveryQuestions.filter((question) => question.tier === tier.id);
 
-        <label className="grid gap-2">
-          <span className="text-sm font-medium text-stone-700">Disaster Type</span>
-          <select
-            value={currentAnswers.disasterType || ""}
-            onChange={(event) => handleFieldChange("disasterType", event.target.value)}
-            className="rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm text-stone-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
-          >
-            <option value="">Select a disaster type</option>
-            {disasterTypeOptions.map((option) => (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
-          </select>
-        </label>
+          if (tierQuestions.length === 0) {
+            return null;
+          }
 
-        <label className="grid gap-2">
-          <span className="text-sm font-medium text-stone-700">Ownership Status</span>
-          <select
-            value={currentAnswers.ownershipStatus || ""}
-            onChange={(event) => handleFieldChange("ownershipStatus", event.target.value)}
-            className="rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm text-stone-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
-          >
-            <option value="">Select ownership status</option>
-            {ownershipOptions.map((option) => (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
-          </select>
-        </label>
+          return (
+            <section key={tier.id} className="grid gap-4 rounded-3xl border border-stone-200 bg-stone-50 p-5">
+              <div className="grid gap-1">
+                <h3 className="text-lg font-semibold text-stone-900">{tier.title}</h3>
+                {tier.description ? (
+                  <p className="text-sm leading-6 text-stone-600">{tier.description}</p>
+                ) : null}
+              </div>
 
-        <label className="grid gap-2">
-          <span className="text-sm font-medium text-stone-700">Insurance Status</span>
-          <select
-            value={currentAnswers.insuranceStatus || ""}
-            onChange={(event) => handleFieldChange("insuranceStatus", event.target.value)}
-            className="rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm text-stone-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
-          >
-            <option value="">Select insurance status</option>
-            {insuranceOptions.map((option) => (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <fieldset className="grid gap-3">
-          <legend className="text-sm font-medium text-stone-700">Recovery Needs</legend>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {recoveryNeedOptions.map((need) => {
-              const checked = recoveryNeeds.includes(need);
-
-              return (
-                <label
-                  key={need}
-                  className="flex cursor-pointer items-center gap-3 rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm font-medium text-stone-700 transition hover:border-stone-300"
-                >
-                  <input
-                    type="checkbox"
-                    checked={checked}
-                    onChange={() => handleNeedToggle(need)}
-                    className="h-4 w-4 rounded border-stone-300 text-emerald-600 focus:ring-emerald-500"
-                  />
-                  <span>{need}</span>
-                </label>
-              );
-            })}
-          </div>
-        </fieldset>
+              <div className="grid gap-5">
+                {tierQuestions.map((question) => renderField(question))}
+              </div>
+            </section>
+          );
+        })}
 
         <div className="pt-2">
           <button
