@@ -6,6 +6,7 @@ import WeaknessList from '../components/score/WeaknessList';
 import RecommendationCard from '../components/recommendations/RecommendationCard';
 import RecoveryPreviewCard from '../components/recovery/RecoveryPreviewCard';
 import { calculateScore } from '../utils/calculateScore';
+import { getProjectedScoreDetails } from '../utils/calculateProjectedScore';
 import { generateRecommendations } from '../utils/generateRecommendations';
 import {
   clearPreparednessProfile,
@@ -51,6 +52,16 @@ export default function ScoreDashboard() {
     }
   }, [homeProfile, regionalRisk, scoreData]);
 
+  const completedRecommendations = useMemo(
+    () => recommendations.filter((recommendation) => doneActionIds.includes(recommendation.id)),
+    [recommendations, doneActionIds],
+  );
+
+  const projectedScore = useMemo(
+    () => getProjectedScoreDetails(scoreData, completedRecommendations),
+    [scoreData, completedRecommendations],
+  );
+
   const handleDoneToggle = (actionId) => {
     setDoneActionIds(prev =>
       prev.includes(actionId)
@@ -82,25 +93,18 @@ export default function ScoreDashboard() {
   }
 
   const maxAchievableScore = scoreData?.maxAchievableScore ?? 100;
-
-  // Add up points for every action the user has marked done, capped at max
-  const doneGain = scoreData
-    ? recommendations
-        .filter(r => doneActionIds.includes(r.id))
-        .reduce((sum, r) => sum + (r.pointsGain ?? r.scoreIncrease ?? 0), 0)
-    : 0;
-  const displayScore = scoreData
-    ? Math.min(maxAchievableScore, scoreData.totalScore + doneGain)
-    : 0;
+  const displayScore = projectedScore.totalScore;
+  const displayCategoryScores = projectedScore.categoryScores ?? scoreData.categoryScores;
+  const scoreImproved = displayScore > scoreData.totalScore;
 
   const label = getScoreLabel(displayScore);
 
   const categories = scoreData
     ? [
-        { name: 'Location risk',         score: scoreData.categoryScores.locationRiskScore,         maxScore: 25, color: 'var(--color-red-500)'   },
-        { name: 'Home vulnerability',    score: scoreData.categoryScores.homeVulnerabilityScore,    maxScore: 25, color: 'var(--color-red-500)'   },
-        { name: 'Eco-mitigation',        score: scoreData.categoryScores.ecoMitigationScore,        maxScore: 25, color: 'var(--color-amber-400)' },
-        { name: 'Recovery preparedness', score: scoreData.categoryScores.recoveryPreparednessScore, maxScore: 25, color: 'var(--color-amber-400)' },
+        { name: 'Location risk',         score: displayCategoryScores.locationRiskScore,         maxScore: 25 },
+        { name: 'Home vulnerability',    score: displayCategoryScores.homeVulnerabilityScore,    maxScore: 25 },
+        { name: 'Eco-mitigation',        score: displayCategoryScores.ecoMitigationScore,        maxScore: 25 },
+        { name: 'Recovery preparedness', score: displayCategoryScores.recoveryPreparednessScore, maxScore: 25 },
       ]
     : [];
 
@@ -179,6 +183,7 @@ export default function ScoreDashboard() {
                       detail={r.description}
                       priority={impactToPriority(r.impactLevel)}
                       pointsGain={r.pointsGain ?? r.scoreIncrease}
+                      scoreImproved={scoreImproved}
                       cost={r.estimatedCost}
                       isDone={doneActionIds.includes(r.id)}
                       onToggle={() => handleDoneToggle(r.id)}

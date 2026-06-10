@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Navigate, Routes, Route } from "react-router-dom";
 import Footbar from "./components/layout/Footbar";
 import Navbar from "./components/layout/Navbar";
 import { AuthProvider } from "./context/AuthContext";
@@ -9,7 +9,7 @@ import RiskOverview from "./pages/RiskOverview";
 import HomeQuestionnaire from "./pages/HomeQuestionnaire";
 import ScoreDashboard from "./pages/ScoreDashboard";
 import Recovery from "./pages/Recovery";
-import UserInfo from "./pages/UserInfo";
+import Reports from "./pages/Reports";
 
 function AppLayout() {
   return (
@@ -24,7 +24,8 @@ function AppLayout() {
           <Route path="/questionnaire" element={<HomeQuestionnaire />} />
           <Route path="/dashboard" element={<ScoreDashboard />} />
           <Route path="/recovery" element={<Recovery />} />
-          <Route path="/user-info" element={<UserInfo />} />
+          <Route path="/reports" element={<Reports />} />
+          <Route path="/user-info" element={<Navigate to="/reports" replace />} />
         </Routes>
       </div>
       <Footbar />

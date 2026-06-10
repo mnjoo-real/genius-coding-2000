@@ -11,6 +11,7 @@ export default function RecommendationCard({
   detail,
   priority = 'later',
   pointsGain,
+  scoreImproved = false,
   cost,
   isDone = false,
   onToggle,
@@ -60,8 +61,10 @@ export default function RecommendationCard({
       </div>
 
       {isDone && (
-        <p className="mt-3 text-xs text-leaf font-medium">
-          Great choice! Your score improved.
+        <p className={`mt-3 text-xs font-medium ${scoreImproved ? 'text-leaf' : 'text-stone-500'}`}>
+          {scoreImproved
+            ? 'Great choice! Your score improved.'
+            : 'Completed. This action does not raise the score any further right now.'}
         </p>
       )}
     </div>

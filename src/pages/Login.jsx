@@ -270,10 +270,10 @@ export default function Login() {
                     Go to Home
                   </Link>
                   <Link
-                    to="/user-info"
+                    to="/reports"
                     className="font-medium text-stone-600 no-underline transition-colors hover:text-stone-900"
                   >
-                    Open My Info
+                    Open Reports
                   </Link>
                 </div>
               </div>

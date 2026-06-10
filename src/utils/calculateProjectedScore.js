@@ -19,7 +19,7 @@ function addFallbackGain(projected, gain) {
   });
 }
 
-export function calculateProjectedScore(scoreInput = 0, selectedRecommendations = []) {
+export function getProjectedScoreDetails(scoreInput = 0, selectedRecommendations = []) {
   const actions = Array.isArray(selectedRecommendations) ? selectedRecommendations : [];
 
   // Legacy fallback for ScoreDashboard.jsx until it passes full scoreData.
@@ -30,13 +30,21 @@ export function calculateProjectedScore(scoreInput = 0, selectedRecommendations 
       return sum + (Number(recommendation.scoreIncrease ?? recommendation.pointsGain) || 0);
     }, 0);
 
-    return Math.min(100, Math.max(0, Math.round(baseScore + improvement)));
+    const totalScore = Math.min(100, Math.max(0, Math.round(baseScore + improvement)));
+
+    return {
+      totalScore,
+      categoryScores: null,
+    };
   }
 
   const categoryScores = scoreInput?.categoryScores;
 
   if (!categoryScores) {
-    return 0;
+    return {
+      totalScore: 0,
+      categoryScores: null,
+    };
   }
 
   const projected = {
@@ -74,5 +82,12 @@ export function calculateProjectedScore(scoreInput = 0, selectedRecommendations 
     projected.ecoMitigationScore +
     projected.recoveryPreparednessScore;
 
-  return Math.min(100, Math.max(0, Math.round(projectedTotal)));
+  return {
+    totalScore: Math.min(100, Math.max(0, Math.round(projectedTotal))),
+    categoryScores: projected,
+  };
+}
+
+export function calculateProjectedScore(scoreInput = 0, selectedRecommendations = []) {
+  return getProjectedScoreDetails(scoreInput, selectedRecommendations).totalScore;
 }

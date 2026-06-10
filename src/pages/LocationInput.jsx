@@ -150,8 +150,8 @@ export default function LocationInput() {
             </div>
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-              <Button variant="primary" onClick={() => navigate("/user-info")}>
-                View User Info
+              <Button variant="primary" onClick={() => navigate("/reports")}>
+                View Reports
               </Button>
               <Button variant="secondary" onClick={() => navigate("/risk")}>
                 Continue

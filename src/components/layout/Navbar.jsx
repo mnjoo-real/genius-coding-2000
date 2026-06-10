@@ -7,8 +7,8 @@ const baseNavLinks = [
   { label: 'Home', to: '/' },
   { label: 'Risk', to: '/risk' },
   { label: 'My Canopy', to: '/dashboard' },
-  { label: 'My Info', to: '/user-info' },
   { label: 'Recovery', to: '/recovery' },
+  { label: 'Reports', to: '/reports' },
 ];
 
 function NavLink({ label, to, active, onClick }) {

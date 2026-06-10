@@ -1,16 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
+import { getScoreBandStyles } from '../../utils/scoreDisplay';
 
 const sizeConfig = {
   sm: { px: 80,  strokeWidth: 8,  fontSize: '1.25rem'  },
   md: { px: 120, strokeWidth: 10, fontSize: '1.875rem' },
   lg: { px: 160, strokeWidth: 12, fontSize: '2.5rem'   },
 };
-
-function ringColor(score) {
-  if (score >= 66) return 'var(--color-leaf)';
-  if (score >= 41) return 'var(--color-amber-400)';
-  return 'var(--color-red-500)';
-}
 
 export default function ScoreGauge({ score = 0, size = 'md' }) {
   const { px, strokeWidth, fontSize } = sizeConfig[size] ?? sizeConfig.md;
@@ -20,7 +15,7 @@ export default function ScoreGauge({ score = 0, size = 'md' }) {
   const radius       = center - strokeWidth / 2;
   const circumference = 2 * Math.PI * radius;
   const targetOffset  = circumference * (1 - clamped / 100);
-  const color         = ringColor(clamped);
+  const color         = getScoreBandStyles(clamped).color;
 
   const [offset, setOffset] = useState(circumference);
   const [pulse,  setPulse]  = useState(false);

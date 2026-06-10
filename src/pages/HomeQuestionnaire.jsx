@@ -30,8 +30,8 @@ function getQuestionnaireAnswers(profile) {
 
 export default function HomeQuestionnaire() {
   const navigate = useNavigate();
-  const [answers, setAnswers] = useState({});
   const [savedProfile, setSavedProfile] = useState(() => readHomeProfile());
+  const [answers, setAnswers] = useState({});
   const [isEditingSavedProfile, setIsEditingSavedProfile] = useState(false);
 
   const total = homeQuestions.length;
@@ -77,8 +77,8 @@ export default function HomeQuestionnaire() {
             </p>
 
             <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-              <Button variant="primary" onClick={() => navigate('/user-info')}>
-                View User Info
+              <Button variant="primary" onClick={() => navigate('/reports')}>
+                View Reports
               </Button>
               <Button variant="secondary" onClick={() => navigate('/dashboard')}>
                 Go to Dashboard
