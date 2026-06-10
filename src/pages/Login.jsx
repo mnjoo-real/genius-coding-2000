@@ -160,11 +160,6 @@ export default function Login() {
                       <h1 className="mt-4 text-3xl font-semibold text-stone-900 sm:text-4xl">
                         {isCreateMode ? "Create your account" : "Welcome back"}
                       </h1>
-                      <p className="mt-4 max-w-xl text-sm leading-6 text-stone-600">
-                        {isCreateMode
-                          ? "Create a local account for this browser."
-                          : "Sign in to keep this browser's preparedness profile organized locally."}
-                      </p>
                     </div>
 
                     <div className="space-y-5">
