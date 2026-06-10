@@ -12,14 +12,16 @@ const heightClasses = {
   lg: 'h-4',
 };
 
-export default function ProgressBar({ value = 0, color = 'success', showLabel = false, height = 'md', className = '', ...props }) {
+export default function ProgressBar({ value = 0, color = 'success', showLabel = false, height = 'md', className = '', delay = 0, ...props }) {
   const clamped = Math.min(100, Math.max(0, value));
   const [width, setWidth] = useState(0);
 
   useEffect(() => {
-    const raf = requestAnimationFrame(() => setWidth(clamped));
-    return () => cancelAnimationFrame(raf);
-  }, [clamped]);
+    const id = setTimeout(() => {
+      requestAnimationFrame(() => setWidth(clamped));
+    }, delay);
+    return () => clearTimeout(id);
+  }, [clamped, delay]);
 
   return (
     <div className={`flex items-center gap-3 ${className}`} {...props}>

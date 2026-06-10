@@ -9,7 +9,7 @@ function resolveBarColor(cssVar = '') {
 export default function WeaknessList({ categories = [] }) {
   return (
     <ul className="flex flex-col gap-4 list-none p-0 m-0">
-      {categories.map(({ name, score, maxScore, color }) => {
+      {categories.map(({ name, score, maxScore, color }, index) => {
         const pct = maxScore > 0 ? Math.round((score / maxScore) * 100) : 0;
         const barColor = resolveBarColor(color);
 
@@ -28,7 +28,7 @@ export default function WeaknessList({ categories = [] }) {
                 {score} / {maxScore}
               </span>
             </div>
-            <ProgressBar value={pct} color={barColor} height="sm" />
+            <ProgressBar value={pct} color={barColor} height="sm" delay={index * 100} />
           </li>
         );
       })}

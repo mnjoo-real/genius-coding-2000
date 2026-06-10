@@ -4,12 +4,9 @@ import Button from '../components/ui/Button';
 import ScoreGauge from '../components/score/ScoreGauge';
 import WeaknessList from '../components/score/WeaknessList';
 import RecommendationCard from '../components/recommendations/RecommendationCard';
-import ScoreSimulationPanel from '../components/simulation/ScoreSimulationPanel';
 import RecoveryPreviewCard from '../components/recovery/RecoveryPreviewCard';
 import { calculateScore } from '../utils/calculateScore';
-import { getTopRisks } from '../utils/getTopRisks';
 import { generateRecommendations } from '../utils/generateRecommendations';
-import { calculateProjectedScore } from '../utils/calculateProjectedScore';
 
 function impactToPriority(impactLevel) {
   if (impactLevel === 'High')   return 'now';
@@ -18,19 +15,18 @@ function impactToPriority(impactLevel) {
 }
 
 function getScoreLabel(score) {
-  if (score >= 75) return { text: 'Prepared',  className: 'text-leaf'      };
-  if (score >= 50) return { text: 'Moderate',  className: 'text-amber-500' };
-  return             { text: 'At risk',   className: 'text-red-500'   };
+  if (score >= 66) return { text: 'Well Prepared', className: 'text-leaf'      };
+  if (score >= 41) return { text: 'Moderate',      className: 'text-amber-500' };
+  return              { text: 'High Risk',     className: 'text-red-500'   };
 }
 
 export default function ScoreDashboard() {
   const navigate = useNavigate();
-  const [homeProfile,  setHomeProfile]  = useState(null);
-  const [regionalRisk, setRegionalRisk] = useState(null);
+  const [homeProfile,     setHomeProfile]     = useState(null);
+  const [regionalRisk,    setRegionalRisk]    = useState(null);
   const [scoreData,       setScoreData]       = useState(null);
-  const [topRisks,        setTopRisks]        = useState(null);
-  const [recommendations,   setRecommendations]   = useState([]);
-  const [selectedActionIds, setSelectedActionIds] = useState([]);
+  const [recommendations, setRecommendations] = useState([]);
+  const [doneActionIds,   setDoneActionIds]   = useState([]);
 
   useEffect(() => {
     const profile = JSON.parse(localStorage.getItem('homeProfile'));
@@ -43,13 +39,10 @@ export default function ScoreDashboard() {
     if (!homeProfile || !regionalRisk) return;
     let result;
     try {
-      result               = calculateScore(regionalRisk, homeProfile);
-      const topRisksResult = getTopRisks(regionalRisk);
+      result = calculateScore(regionalRisk, homeProfile);
       setScoreData(result);
-      setTopRisks(topRisksResult);
     } catch {
       setScoreData(null);
-      setTopRisks(null);
       setRecommendations([]);
       return;
     }
@@ -60,8 +53,8 @@ export default function ScoreDashboard() {
     }
   }, [homeProfile, regionalRisk]);
 
-  const handleToggle = (actionId) => {
-    setSelectedActionIds(prev =>
+  const handleDoneToggle = (actionId) => {
+    setDoneActionIds(prev =>
       prev.includes(actionId)
         ? prev.filter(id => id !== actionId)
         : [...prev, actionId]
@@ -84,11 +77,7 @@ export default function ScoreDashboard() {
           <p className="mt-3 text-stone-500">
             Please complete the location and home assessment steps first.
           </p>
-          <Button
-            variant="primary"
-            className="mt-6"
-            onClick={() => navigate('/location')}
-          >
+          <Button variant="primary" className="mt-6" onClick={() => navigate('/location')}>
             Start Over
           </Button>
         </div>
@@ -96,7 +85,19 @@ export default function ScoreDashboard() {
     );
   }
 
-  const label = scoreData ? getScoreLabel(scoreData.totalScore) : null;
+  const maxAchievableScore = scoreData?.maxAchievableScore ?? 100;
+
+  // Add up points for every action the user has marked done, capped at max
+  const doneGain = scoreData
+    ? recommendations
+        .filter(r => doneActionIds.includes(r.id))
+        .reduce((sum, r) => sum + (r.pointsGain ?? r.scoreIncrease ?? 0), 0)
+    : 0;
+  const displayScore = scoreData
+    ? Math.min(maxAchievableScore, scoreData.totalScore + doneGain)
+    : 0;
+
+  const label = getScoreLabel(displayScore);
 
   const categories = scoreData
     ? [
@@ -106,58 +107,76 @@ export default function ScoreDashboard() {
         { name: 'Recovery preparedness', score: scoreData.categoryScores.recoveryPreparednessScore, maxScore: 25, color: 'var(--color-amber-400)' },
       ]
     : [];
-  const weakestArea = categories.length > 0
-    ? categories.reduce((a, b) => (a.score < b.score ? a : b)).name
-    : null;
-  const maxAchievableScore = scoreData?.maxAchievableScore ?? 100;
 
   return (
-    <main className="min-h-screen bg-parchment px-6 py-16">
-        <div className="mx-auto max-w-5xl">
-          <h1 className="text-3xl">Your Canopy Score</h1>
-          <p className="mt-2 text-stone-500">Based on your location and home assessment.</p>
+    <main className="min-h-screen bg-parchment px-6 py-12">
+      <div className="mx-auto max-w-5xl">
 
-          <div className="mt-10 flex flex-col gap-10">
-            <section>
-              <p className="text-xs font-medium uppercase tracking-widest text-stone-400 mb-3">
-                Score &amp; Weaknesses
-              </p>
-              {!scoreData ? (
-                <p className="text-center text-stone-500">Calculating your score...</p>
-              ) : (
-                <div className="flex flex-col gap-6">
-                  <div className="flex flex-col items-center gap-2">
-                    <ScoreGauge score={scoreData.totalScore} size="lg" />
-                    <span className={`text-sm font-medium ${label.className}`}>
-                      {label.text}
-                    </span>
-                    <div className="mt-2 max-w-md rounded border border-stone-200 bg-white/70 px-4 py-3 text-sm text-stone-500">
-                      <p>Current score: {scoreData.totalScore}/100</p>
-                      <p>Maximum achievable score: {maxAchievableScore}/100</p>
-                      <p className="mt-2">
-                        Location risk is fixed based on your ZIP code, so your action plan focuses
-                        on the categories you can improve.
-                      </p>
-                    </div>
-                  </div>
-                  <WeaknessList categories={categories} />
-                  <p className="text-sm text-stone-500">
-                    Your weakest area: {weakestArea}
+        <h1 className="text-3xl">Your Canopy Score</h1>
+        <p className="mt-2 mb-10 text-stone-500">Based on your location and home assessment.</p>
+
+        {!scoreData ? (
+          <p className="text-center text-stone-500">Calculating your score…</p>
+        ) : (
+          <>
+            {/* ── Two-column layout (stacks on mobile) ─────────────── */}
+            <div className="flex flex-col gap-10 lg:grid lg:grid-cols-5 lg:gap-8 lg:items-start">
+
+              {/* ── LEFT COLUMN: gauge + info (sticky on desktop) ───── */}
+              <aside className="lg:col-span-2 flex flex-col gap-6 lg:sticky lg:top-8">
+
+                {/* Gauge + dynamic label */}
+                <div className="flex flex-col items-center gap-2">
+                  <ScoreGauge score={displayScore} size="lg" />
+                  <span className={`text-sm font-semibold ${label.className}`}>
+                    {label.text}
+                  </span>
+                </div>
+
+                {/* Score explanation */}
+                <div>
+                  <h3 className="text-sm font-semibold text-stone-700 mb-1.5">
+                    What is your Canopy Score?
+                  </h3>
+                  <p className="text-xs text-stone-500 leading-relaxed">
+                    Your Canopy Score measures how protected your home is from natural
+                    disasters. A higher score means you're better prepared. Scores range
+                    from 0–100: 0–40 is High Risk, 41–65 is Moderate, 66–100 is Well
+                    Prepared.
                   </p>
                 </div>
-              )}
-            </section>
 
-            <section>
-              <p className="text-xs font-medium uppercase tracking-widest text-stone-400 mb-3">
-                Recommended Actions
-              </p>
-              <h3 className="text-xl mb-4">Recommended actions</h3>
-              {recommendations.length === 0 ? (
-                <p className="text-sm text-stone-400">No recommendations available.</p>
-              ) : (
-                <div className="flex flex-col gap-4">
-                  {recommendations.map(r => (
+                {/* Category breakdown bars */}
+                <WeaknessList categories={categories} />
+
+                {/* Score info box */}
+                <div className="rounded-xl border border-stone-200 bg-white/70 px-4 py-3 text-xs text-stone-500 space-y-0.5">
+                  <p>
+                    Current:{' '}
+                    <span className="font-medium text-stone-700">{displayScore}</span> / 100
+                  </p>
+                  <p>
+                    Max achievable:{' '}
+                    <span className="font-medium text-stone-700">{maxAchievableScore}</span> / 100
+                  </p>
+                  <p className="mt-1.5">
+                    Location risk is fixed by your ZIP code — your action plan focuses on
+                    the categories you can improve.
+                  </p>
+                </div>
+
+              </aside>
+
+              {/* ── RIGHT COLUMN: recommendation cards ──────────────── */}
+              <div className="lg:col-span-3 flex flex-col gap-4">
+                <p className="text-xs font-medium uppercase tracking-widest text-stone-400">
+                  Recommended Actions
+                </p>
+
+                {recommendations.length === 0 ? (
+                  <p className="text-sm text-stone-400">No recommendations available.</p>
+                ) : (
+                  recommendations.map(r => (
                     <RecommendationCard
                       key={r.id}
                       title={r.title}
@@ -165,65 +184,31 @@ export default function ScoreDashboard() {
                       priority={impactToPriority(r.impactLevel)}
                       pointsGain={r.pointsGain ?? r.scoreIncrease}
                       cost={r.estimatedCost}
-                      onLearnMore={() => {}}
+                      isDone={doneActionIds.includes(r.id)}
+                      onToggle={() => handleDoneToggle(r.id)}
                     />
-                  ))}
-                </div>
-              )}
-            </section>
+                  ))
+                )}
+              </div>
+            </div>
 
-            <section>
-              <p className="text-xs font-medium uppercase tracking-widest text-stone-400 mb-3">
-                Score Simulator
-              </p>
-              <h3 className="text-xl mb-1">See your projected score</h3>
-              <p className="text-sm text-stone-500 mb-6">
-                Toggle actions to see how your score changes.
-              </p>
-              {scoreData && (
-                <>
-                  <ScoreSimulationPanel
-                    baseScore={scoreData.totalScore}
-                    actions={recommendations.map(r => ({
-                      id: r.id,
-                      title: r.title,
-                      pointsGain: r.pointsGain ?? r.scoreIncrease,
-                      selected: selectedActionIds.includes(r.id),
-                    }))}
-                    onToggle={handleToggle}
-                  />
-                  <div className="mt-6 flex items-baseline gap-2">
-                    <span className="text-sm text-stone-500">Projected score:</span>
-                    <span className="text-2xl font-bold text-leaf">
-                      {calculateProjectedScore(
-                        scoreData,
-                        recommendations.filter(r => selectedActionIds.includes(r.id))
-                      )}
-                    </span>
-                  </div>
-                </>
-              )}
-            </section>
-
-            <section>
+            {/* ── Recovery CTA (full-width below both columns) ─────── */}
+            <section className="mt-14">
               <p className="text-xs font-medium uppercase tracking-widest text-stone-400 mb-3">
                 Recovery Center
               </p>
-              <h3 className="text-xl mb-1">Plan your recovery next</h3>
-              <p className="text-sm text-stone-500 mb-6">
-                Use the Recovery Center to organize documents, home photos, mock aid matching,
-                deadlines, and application statuses after you finish preparedness.
-              </p>
               <RecoveryPreviewCard />
             </section>
-          </div>
+          </>
+        )}
 
-          <div className="mt-12">
-            <Button variant="secondary" size="sm" onClick={handleStartOver}>
-              Start Over
-            </Button>
-          </div>
+        <div className="mt-10">
+          <Button variant="secondary" size="sm" onClick={handleStartOver}>
+            Start Over
+          </Button>
         </div>
-      </main>
+
+      </div>
+    </main>
   );
 }

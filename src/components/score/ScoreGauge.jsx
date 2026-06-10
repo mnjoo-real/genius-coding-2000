@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 const sizeConfig = {
   sm: { px: 80,  strokeWidth: 8,  fontSize: '1.25rem'  },
@@ -7,8 +7,8 @@ const sizeConfig = {
 };
 
 function ringColor(score) {
-  if (score >= 75) return 'var(--color-leaf)';
-  if (score >= 50) return 'var(--color-amber-400)';
+  if (score >= 66) return 'var(--color-leaf)';
+  if (score >= 41) return 'var(--color-amber-400)';
   return 'var(--color-red-500)';
 }
 
@@ -16,18 +16,31 @@ export default function ScoreGauge({ score = 0, size = 'md' }) {
   const { px, strokeWidth, fontSize } = sizeConfig[size] ?? sizeConfig.md;
   const clamped = Math.min(100, Math.max(0, score));
 
-  const center = px / 2;
-  const radius = center - strokeWidth / 2;
+  const center       = px / 2;
+  const radius       = center - strokeWidth / 2;
   const circumference = 2 * Math.PI * radius;
-  const targetOffset = circumference * (1 - clamped / 100);
-  const color = ringColor(clamped);
+  const targetOffset  = circumference * (1 - clamped / 100);
+  const color         = ringColor(clamped);
 
   const [offset, setOffset] = useState(circumference);
+  const [pulse,  setPulse]  = useState(false);
+  const prevScoreRef        = useRef(null);
 
+  // Animate arc on mount and whenever score changes
   useEffect(() => {
     const raf = requestAnimationFrame(() => setOffset(targetOffset));
     return () => cancelAnimationFrame(raf);
   }, [targetOffset]);
+
+  // Pulse the score number when it changes after first render
+  useEffect(() => {
+    if (prevScoreRef.current !== null && prevScoreRef.current !== score) {
+      setPulse(true);
+      const t = setTimeout(() => setPulse(false), 300);
+      return () => clearTimeout(t);
+    }
+    prevScoreRef.current = score;
+  }, [score]);
 
   return (
     <svg
@@ -64,7 +77,7 @@ export default function ScoreGauge({ score = 0, size = 'md' }) {
         }}
       />
 
-      {/* Score number */}
+      {/* Score number — scales up briefly when score changes */}
       <text
         x={center}
         y={center}
@@ -75,6 +88,10 @@ export default function ScoreGauge({ score = 0, size = 'md' }) {
           fontWeight: 700,
           fill: 'var(--color-stone-900)',
           fontFamily: 'inherit',
+          transformBox: 'fill-box',
+          transformOrigin: 'center',
+          transform: pulse ? 'scale(1.08)' : 'scale(1)',
+          transition: 'transform 200ms ease',
         }}
       >
         {clamped}
