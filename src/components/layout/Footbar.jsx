@@ -25,7 +25,7 @@ export default function Footbar() {
 
       <div className="border-t border-stone-100">
         <p className="mx-auto max-w-5xl px-4 py-3 text-xs text-stone-400 leading-relaxed">
-          Canopy Score is a rule-based educational estimate, not an official engineering inspection, insurance assessment, or government determination.
+          ⓒ 2026 GENIUS Olympiad Coding Team 2000
         </p>
       </div>
     </footer>
