@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
 const STORAGE_KEY = "homePhotoEvidence";
 const MAX_PHOTOS = 4;
@@ -139,13 +139,11 @@ async function processImageFile(file) {
 
 export default function HomePhotoUploadGrid() {
   const inputRefs = useRef([]);
-  const [photos, setPhotos] = useState([]);
+  const [photos, setPhotos] = useState(() => readStoredPhotos());
+  const [savedPhotos, setSavedPhotos] = useState(() => readStoredPhotos());
   const [errorMessage, setErrorMessage] = useState("");
   const [storageWarning, setStorageWarning] = useState("");
-
-  useEffect(() => {
-    setPhotos(readStoredPhotos());
-  }, []);
+  const [saveMessage, setSaveMessage] = useState("");
 
   const slots = useMemo(
     () => Array.from({ length: MAX_PHOTOS }, (_, index) => photos[index] ?? null),
@@ -153,6 +151,7 @@ export default function HomePhotoUploadGrid() {
   );
   const nextEmptySlotIndex = slots.findIndex((slot) => slot === null);
   const isAtCapacity = nextEmptySlotIndex === -1;
+  const hasUnsavedChanges = JSON.stringify(photos) !== JSON.stringify(savedPhotos);
 
   const openPicker = (slotIndex) => {
     inputRefs.current[slotIndex]?.click();
@@ -163,16 +162,27 @@ export default function HomePhotoUploadGrid() {
       const nextPhotos = normalizePhotos(
         typeof updater === "function" ? updater(currentPhotos) : updater,
       );
-      const result = persistPhotos(nextPhotos);
-
-      if (result.ok) {
-        setStorageWarning("");
-      } else {
-        setStorageWarning(result.message);
-      }
 
       return nextPhotos;
     });
+    setStorageWarning("");
+    setSaveMessage("");
+  };
+
+  const handleSave = () => {
+    setErrorMessage("");
+
+    const result = persistPhotos(photos);
+
+    if (!result.ok) {
+      setStorageWarning(result.message);
+      setSaveMessage("");
+      return;
+    }
+
+    setSavedPhotos(photos);
+    setStorageWarning("");
+    setSaveMessage("Home photos saved locally.");
   };
 
   const handleFileChange = async (slotIndex, event) => {
@@ -293,19 +303,35 @@ export default function HomePhotoUploadGrid() {
       </div>
 
       <div className="mt-5 flex flex-col gap-3">
-        {!isAtCapacity ? (
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          {!isAtCapacity ? (
+            <button
+              type="button"
+              onClick={() => openPicker(nextEmptySlotIndex)}
+              className="inline-flex w-fit items-center justify-center rounded-full bg-emerald-700 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
+            >
+              Add photo
+            </button>
+          ) : (
+            <p className="text-sm text-stone-600">
+              You can store up to 4 home photos in this MVP.
+            </p>
+          )}
+
           <button
             type="button"
-            onClick={() => openPicker(nextEmptySlotIndex)}
-            className="inline-flex w-fit items-center justify-center rounded-full bg-emerald-700 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
+            onClick={handleSave}
+            disabled={!hasUnsavedChanges}
+            className={[
+              "inline-flex w-fit items-center justify-center rounded-full px-5 py-3 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2",
+              hasUnsavedChanges
+                ? "border border-leaf bg-white text-forest hover:bg-moss/60"
+                : "cursor-not-allowed border border-stone-200 bg-stone-100 text-stone-400",
+            ].join(" ")}
           >
-            Add photo
+            Save photos
           </button>
-        ) : (
-          <p className="text-sm text-stone-600">
-            You can store up to 4 home photos in this MVP.
-          </p>
-        )}
+        </div>
 
         {errorMessage ? (
           <p className="text-sm text-rose-700">
@@ -316,6 +342,12 @@ export default function HomePhotoUploadGrid() {
         {storageWarning ? (
           <p className="text-sm text-amber-700">
             {storageWarning}
+          </p>
+        ) : null}
+
+        {saveMessage ? (
+          <p className="text-sm text-emerald-700">
+            {saveMessage}
           </p>
         ) : null}
       </div>
