@@ -1,6 +1,7 @@
 import { supabase, hasSupabaseConfig } from "../lib/supabaseClient";
 import { calculateScore } from "../utils/calculateScore";
 
+const PROFILE_ID_STORAGE_KEY = "profile_id";
 const ANONYMOUS_PROFILE_ID_KEY = "supabaseAnonymousProfileId";
 
 export const USER_INFO_SUPABASE_TABLES = {
@@ -58,12 +59,18 @@ function getAnonymousProfileId() {
     return null;
   }
 
-  const existingProfileId = window.localStorage.getItem(ANONYMOUS_PROFILE_ID_KEY);
+  const existingProfileId =
+    window.localStorage.getItem(PROFILE_ID_STORAGE_KEY) ??
+    window.localStorage.getItem(ANONYMOUS_PROFILE_ID_KEY);
+
   if (existingProfileId) {
+    window.localStorage.setItem(PROFILE_ID_STORAGE_KEY, existingProfileId);
+    window.localStorage.setItem(ANONYMOUS_PROFILE_ID_KEY, existingProfileId);
     return existingProfileId;
   }
 
   const nextProfileId = createAnonymousProfileId();
+  window.localStorage.setItem(PROFILE_ID_STORAGE_KEY, nextProfileId);
   window.localStorage.setItem(ANONYMOUS_PROFILE_ID_KEY, nextProfileId);
   return nextProfileId;
 }

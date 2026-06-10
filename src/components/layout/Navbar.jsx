@@ -1,12 +1,13 @@
 import { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { supabase } from '../../lib/supabaseClient';
+import { useAuth } from '../../context/AuthContext';
 
-const navLinks = [
-  { label: 'Home',      to: '/' },
-  { label: 'My Canopy',  to: '/dashboard' },
-  { label: 'Recovery',  to: '/recovery' },
-  { label: 'My Info',  to: '/user-info' },
-  { label: 'Login',  to: '/login' },
+const baseNavLinks = [
+  { label: 'Home', to: '/' },
+  { label: 'My Canopy', to: '/dashboard' },
+  { label: 'Recovery', to: '/recovery' },
+  { label: 'My Info', to: '/user-info' },
 ];
 
 function NavLink({ label, to, active, onClick }) {
@@ -26,11 +27,45 @@ function NavLink({ label, to, active, onClick }) {
   );
 }
 
+function NavButton({ label, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="no-underline text-sm transition-fast text-stone-500 hover:text-forest"
+    >
+      {label}
+    </button>
+  );
+}
+
 export default function Navbar() {
+  const navigate = useNavigate();
   const { pathname } = useLocation();
   const [open, setOpen] = useState(false);
+  const { isAuthenticated, isLoading } = useAuth();
 
   const isActive = (to) => pathname === to;
+
+  const navLinks = [
+    ...baseNavLinks,
+    isAuthenticated
+      ? { label: 'Logout', action: 'logout' }
+      : { label: 'Login', to: '/login' },
+  ];
+
+  async function handleLogout() {
+    setOpen(false);
+
+    if (!supabase) {
+      navigate('/login');
+      return;
+    }
+
+    await supabase.auth.signOut();
+    setOpen(false);
+    navigate('/login');
+  }
 
   return (
     <nav className="sticky top-0 z-50 bg-parchment border-b border-stone-200">
@@ -44,7 +79,11 @@ export default function Navbar() {
         <ul className="hidden sm:flex items-center gap-7 list-none m-0 p-0">
           {navLinks.map((link) => (
             <li key={link.label}>
-              <NavLink {...link} active={isActive(link.to)} />
+              {'action' in link ? (
+                <NavButton label={link.label} onClick={handleLogout} />
+              ) : (
+                <NavLink {...link} active={isActive(link.to)} />
+              )}
             </li>
           ))}
         </ul>
@@ -69,15 +108,25 @@ export default function Navbar() {
       </div>
 
       {/* Mobile drawer */}
-      {open && (
+      {open && !isLoading && (
         <div className="sm:hidden border-t border-stone-200 bg-parchment px-4 py-3 flex flex-col gap-3">
           {navLinks.map((link) => (
-            <NavLink
-              key={link.label}
-              {...link}
-              active={isActive(link.to)}
-              onClick={() => setOpen(false)}
-            />
+            <div key={link.label}>
+              {'action' in link ? (
+                <NavButton
+                  label={link.label}
+                  onClick={() => {
+                    void handleLogout();
+                  }}
+                />
+              ) : (
+                <NavLink
+                  {...link}
+                  active={isActive(link.to)}
+                  onClick={() => setOpen(false)}
+                />
+              )}
+            </div>
           ))}
         </div>
       )}

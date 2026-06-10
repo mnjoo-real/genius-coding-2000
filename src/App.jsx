@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Footbar from "./components/layout/Footbar";
 import Navbar from "./components/layout/Navbar";
+import { AuthProvider } from "./context/AuthContext";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import LocationInput from "./pages/LocationInput";
@@ -33,9 +34,11 @@ function AppLayout() {
 
 function App() {
   return (
-    <BrowserRouter>
-      <AppLayout />
-    </BrowserRouter>
+    <AuthProvider>
+      <BrowserRouter>
+        <AppLayout />
+      </BrowserRouter>
+    </AuthProvider>
   );
 }
 
