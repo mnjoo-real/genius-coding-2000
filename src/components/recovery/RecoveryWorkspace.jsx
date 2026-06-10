@@ -176,7 +176,7 @@ function PhotoUploadGrid({ title, description, items, onAdd, onRemove }) {
         </div>
       </div>
 
-      <div className="mt-5 max-h-[28rem] overflow-y-auto pr-1">
+      <div className="mt-5 max-h-112 overflow-y-auto pr-1">
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-4">
           {items.map((item, index) => (
             <PhotoTile
