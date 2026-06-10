@@ -7,7 +7,7 @@ OUT_PATH = Path("data/processed/county_risk_profiles.csv")
 SOURCE = "FEMA National Risk Index v1.20, December 2025"
 METHODOLOGY_NOTE = (
     "County-level FEMA NRI hazard Risk Index Scores mapped to app categories "
-    "using average hazard scores for educational planning use."
+    "using rank-weighted hazard scores and county-relative percentile ranks for educational planning use."
 )
 
 
@@ -27,7 +27,7 @@ def round_score(value):
     return int(round(number))
 
 
-def choose_average_score_and_rating(row, score_cols, rating_cols):
+def choose_weighted_score_and_rating(row, score_cols, rating_cols):
     scored_components = []
 
     for score_col, rating_col in zip(score_cols, rating_cols):
@@ -40,12 +40,15 @@ def choose_average_score_and_rating(row, score_cols, rating_cols):
     if not scored_components:
         return None, None
 
-    average_score = sum(score for score, _ in scored_components) / len(scored_components)
-    rounded_score = int(round(average_score))
+    scored_components.sort(key=lambda item: item[0], reverse=True)
+
+    weights = list(range(len(scored_components), 0, -1))
+    weighted_average = sum(score * weight for (score, _), weight in zip(scored_components, weights)) / sum(weights)
+    rounded_score = int(round(weighted_average))
 
     closest_rating = min(
         scored_components,
-        key=lambda item: abs(item[0] - average_score),
+        key=lambda item: abs(item[0] - weighted_average),
     )[1]
 
     return rounded_score, closest_rating
@@ -78,19 +81,19 @@ def main():
     rows = []
 
     for _, row in df.iterrows():
-        flood_score, flood_rating = choose_average_score_and_rating(
+        flood_score, flood_rating = choose_weighted_score_and_rating(
             row,
             ["CFLD_RISKS", "IFLD_RISKS"],
             ["CFLD_RISKR", "IFLD_RISKR"],
         )
 
-        storm_score, storm_rating = choose_average_score_and_rating(
+        storm_score, storm_rating = choose_weighted_score_and_rating(
             row,
             ["HRCN_RISKS", "SWND_RISKS", "TRND_RISKS"],
             ["HRCN_RISKR", "SWND_RISKR", "TRND_RISKR"],
         )
 
-        winter_score, winter_rating = choose_average_score_and_rating(
+        winter_score, winter_rating = choose_weighted_score_and_rating(
             row,
             ["WNTW_RISKS", "ISTM_RISKS", "CWAV_RISKS"],
             ["WNTW_RISKR", "ISTM_RISKR", "CWAV_RISKR"],
@@ -128,6 +131,18 @@ def main():
 
     # Remove completely invalid rows if any.
     out_df = out_df[out_df["stcofips"].astype(str).str.len() > 0]
+
+    relative_source_columns = [
+        "flood_risk",
+        "wildfire_risk",
+        "heat_risk",
+        "storm_risk",
+        "winter_storm_risk",
+    ]
+
+    for column in relative_source_columns:
+        numeric_scores = pd.to_numeric(out_df[column], errors="coerce")
+        out_df[f"{column}_relative"] = numeric_scores.rank(method="average", pct=True).round(6)
 
     out_df.to_csv(OUT_PATH, index=False)
 

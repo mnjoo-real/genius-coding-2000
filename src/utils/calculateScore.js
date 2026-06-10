@@ -1,3 +1,5 @@
+import { getRelativeRiskValue } from './riskDisplay';
+
 function clampScore(score) {
   return Math.max(0, Math.min(100, Math.round(score)));
 }
@@ -40,23 +42,23 @@ export function calculateScore(regionalRisk, homeProfile) {
   const weaknesses = [];
 
   const riskValues = [
-    Number(regionalRisk.floodRisk) || 0,
-    Number(regionalRisk.wildfireRisk) || 0,
-    Number(regionalRisk.heatRisk) || 0,
-    Number(regionalRisk.stormRisk) || 0,
-    Number(regionalRisk.winterStormRisk) || 0,
+    getRelativeRiskValue(regionalRisk, 'floodRisk'),
+    getRelativeRiskValue(regionalRisk, 'wildfireRisk'),
+    getRelativeRiskValue(regionalRisk, 'heatRisk'),
+    getRelativeRiskValue(regionalRisk, 'stormRisk'),
+    getRelativeRiskValue(regionalRisk, 'winterStormRisk'),
   ];
 
   const averageRegionalRisk =
     riskValues.reduce((sum, value) => sum + value, 0) / riskValues.length;
 
   const locationRiskScore = clampCategoryScore(
-    25 - averageRegionalRisk * 0.25
+    25 - averageRegionalRisk * 25
   );
 
-  if (averageRegionalRisk >= 70) {
+  if (averageRegionalRisk >= 0.7) {
     weaknesses.push("Your region has high overall disaster exposure.");
-  } else if (averageRegionalRisk >= 45) {
+  } else if (averageRegionalRisk >= 0.45) {
     weaknesses.push("Your region has moderate disaster exposure.");
   }
 

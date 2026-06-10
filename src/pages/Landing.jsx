@@ -3,6 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import Button from '../components/ui/Button';
 import { regionalRiskData, fallbackRiskData } from '../data/regionalRiskData';
 import { saveResolvedLocationProfile } from '../services/userInfoSyncService';
+import {
+  formatRiskScore,
+  getRelativeRiskValue,
+  getRiskColor,
+} from '../utils/riskDisplay';
 
 // Lazy-load the heavy Three.js globe so it doesn't block initial paint
 const Globe = lazy(() => import('react-globe.gl'));
@@ -75,12 +80,6 @@ const ECO_STATS = [
   },
 ];
 
-function riskBarColor(value) {
-  if (value >= 75) return 'bg-red-500';
-  if (value >= 45) return 'bg-amber-400';
-  return 'bg-leaf';
-}
-
 // ── Sub-components ─────────────────────────────────────────────────────────
 
 function FeatureBubble({ icon, title, desc, delay }) {
@@ -132,20 +131,27 @@ function RiskOverlay({ risk }) {
         {risk.city}{risk.state ? `, ${risk.state}` : ''}
       </p>
       <div className="flex flex-col gap-1.5">
-        {RISK_BARS.map(({ key, label }) => (
-          <div key={key} className="flex items-center gap-2">
-            <span className="w-20 text-xs text-stone-500 shrink-0">{label}</span>
-            <div className="flex-1 h-1.5 rounded-full bg-stone-100 overflow-hidden">
-              <div
-                className={`h-full rounded-full transition-[width] duration-700 ease-out ${riskBarColor(risk[key])}`}
-                style={{ width: `${risk[key]}%` }}
-              />
+        {RISK_BARS.map(({ key, label }) => {
+          const normalized = getRelativeRiskValue(risk, key);
+
+          return (
+            <div key={key} className="flex items-center gap-2">
+              <span className="w-20 text-xs text-stone-500 shrink-0">{label}</span>
+              <div className="flex-1 h-1.5 rounded-full bg-stone-100 overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-[width] duration-700 ease-out"
+                  style={{
+                    width: `${normalized * 100}%`,
+                    backgroundColor: getRiskColor(normalized),
+                  }}
+                />
+              </div>
+              <span className="text-xs tabular-nums text-stone-400 w-8 text-right">
+                {formatRiskScore(normalized)}
+              </span>
             </div>
-            <span className="text-xs tabular-nums text-stone-400 w-6 text-right">
-              {risk[key]}
-            </span>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

@@ -9,6 +9,11 @@ import {
   readSelectedZipCode,
   saveResolvedLocationProfile,
 } from "../services/userInfoSyncService";
+import {
+  formatRiskScore,
+  getRelativeRiskValue,
+  getRiskBandClasses,
+} from "../utils/riskDisplay";
 
 const RISK_LOOKUP_ERROR =
   "We could not find regional risk data for this ZIP code. Please check the ZIP code and try again.";
@@ -131,15 +136,15 @@ export default function LocationInput() {
 
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
               <div className="rounded-2xl border border-stone-200 bg-white p-4">
-                <p className="text-sm font-medium text-stone-700">Flood risk</p>
-                <p className="mt-1 text-stone-900">
-                  {savedRegionalRisk.floodRisk ?? "Not provided"}
+                <p className="text-sm font-medium text-stone-700">Flood risk score</p>
+                <p className={`mt-1 text-lg font-semibold ${getRiskBandClasses(getRelativeRiskValue(savedRegionalRisk, "floodRisk")).valueClassName}`}>
+                  {formatRiskScore(getRelativeRiskValue(savedRegionalRisk, "floodRisk"))}
                 </p>
               </div>
               <div className="rounded-2xl border border-stone-200 bg-white p-4">
-                <p className="text-sm font-medium text-stone-700">Wildfire risk</p>
-                <p className="mt-1 text-stone-900">
-                  {savedRegionalRisk.wildfireRisk ?? "Not provided"}
+                <p className="text-sm font-medium text-stone-700">Wildfire risk score</p>
+                <p className={`mt-1 text-lg font-semibold ${getRiskBandClasses(getRelativeRiskValue(savedRegionalRisk, "wildfireRisk")).valueClassName}`}>
+                  {formatRiskScore(getRelativeRiskValue(savedRegionalRisk, "wildfireRisk"))}
                 </p>
               </div>
             </div>

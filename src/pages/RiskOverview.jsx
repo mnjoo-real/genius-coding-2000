@@ -1,13 +1,14 @@
 import { Link } from "react-router-dom";
 import RiskBarChart from "../components/risk/RiskBarChart";
 import { readRegionalRisk } from "../services/userInfoSyncService";
+import { getRelativeRiskValue } from "../utils/riskDisplay";
 
 const RISK_FIELDS = [
-  { label: "Flood",        field: "floodRisk",       color: "#6d8f4a" },
-  { label: "Wildfire",     field: "wildfireRisk",     color: "#ef4444" },
-  { label: "Heat Wave",    field: "heatRisk",         color: "#f59e0b" },
-  { label: "Storm",        field: "stormRisk",        color: "#2f5d40" },
-  { label: "Winter Storm", field: "winterStormRisk",  color: "#a8b89a" },
+  { label: "Flood", field: "floodRisk" },
+  { label: "Wildfire", field: "wildfireRisk" },
+  { label: "Heat Wave", field: "heatRisk" },
+  { label: "Storm", field: "stormRisk" },
+  { label: "Winter Storm", field: "winterStormRisk" },
 ];
 
 function str(value, fallback) {
@@ -26,10 +27,9 @@ export default function RiskOverview() {
     : null;
 
   const chartRisks = regionalRisk
-    ? RISK_FIELDS.map(({ label, field, color }) => ({
+    ? RISK_FIELDS.map(({ label, field }) => ({
         label,
-        value: typeof regionalRisk[field] === "number" ? regionalRisk[field] : 0,
-        color,
+        value: getRelativeRiskValue(regionalRisk, field),
       }))
     : [];
 
@@ -96,7 +96,7 @@ export default function RiskOverview() {
             {/* Risk bar chart */}
             <section className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
               <p className="text-xs font-medium uppercase tracking-[0.2em] text-leaf">
-                Risk Profile
+                Relative Risk Score
               </p>
               <div className="mt-4">
                 <RiskBarChart risks={chartRisks} />

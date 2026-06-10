@@ -1,3 +1,5 @@
+import { getRelativeRiskValue } from './riskDisplay';
+
 export function getTopRisks(regionalRisk) {
   if (!regionalRisk) return [];
 
@@ -5,27 +7,27 @@ export function getTopRisks(regionalRisk) {
     {
       label: "Flood",
       key: "floodRisk",
-      score: Number(regionalRisk.floodRisk) || 0,
+      score: getRelativeRiskValue(regionalRisk, "floodRisk"),
     },
     {
       label: "Wildfire",
       key: "wildfireRisk",
-      score: Number(regionalRisk.wildfireRisk) || 0,
+      score: getRelativeRiskValue(regionalRisk, "wildfireRisk"),
     },
     {
       label: "Heat Wave",
       key: "heatRisk",
-      score: Number(regionalRisk.heatRisk) || 0,
+      score: getRelativeRiskValue(regionalRisk, "heatRisk"),
     },
     {
       label: "Storm",
       key: "stormRisk",
-      score: Number(regionalRisk.stormRisk) || 0,
+      score: getRelativeRiskValue(regionalRisk, "stormRisk"),
     },
     {
       label: "Winter Storm",
       key: "winterStormRisk",
-      score: Number(regionalRisk.winterStormRisk) || 0,
+      score: getRelativeRiskValue(regionalRisk, "winterStormRisk"),
     },
   ];
 

@@ -5,6 +5,12 @@ import {
   getPreparednessStorageScope,
   readPreparednessSnapshot,
 } from "../services/userInfoSyncService";
+import {
+  formatRiskScore,
+  getRelativeRiskValue,
+  getRiskBand,
+  getRiskBandClasses,
+} from "../utils/riskDisplay";
 
 function formatLabel(value) {
   if (!value) {
@@ -45,8 +51,13 @@ function getRiskValue(regionalRisk, key) {
     return "Not provided";
   }
 
-  const value = regionalRisk[key];
-  return value == null || value === "" ? "Not provided" : String(value);
+  const relativeKey = `${key}Relative`;
+  if (regionalRisk[relativeKey] == null && regionalRisk[key] == null) {
+    return "Not provided";
+  }
+
+  const value = getRelativeRiskValue(regionalRisk, key);
+  return formatRiskScore(value);
 }
 
 function getRiskCardStyle(regionalRisk, key) {
@@ -60,8 +71,8 @@ function getRiskCardStyle(regionalRisk, key) {
     };
   }
 
-  const numericValue = Number(regionalRisk[key]);
-  if (!Number.isFinite(numericValue)) {
+  const relativeKey = `${key}Relative`;
+  if (regionalRisk[relativeKey] == null && regionalRisk[key] == null) {
     return {
       label: "Unknown",
       className: "border-stone-200 bg-stone-50",
@@ -71,32 +82,13 @@ function getRiskCardStyle(regionalRisk, key) {
     };
   }
 
-  if (numericValue >= 75) {
-    return {
-      label: "High",
-      className: "border-red-200 bg-red-50",
-      labelClassName: "text-red-700",
-      valueClassName: "text-red-700",
-      badgeClassName: "border-red-200 bg-white/70 text-red-700",
-    };
-  }
-
-  if (numericValue >= 45) {
-    return {
-      label: "Medium",
-      className: "border-amber-200 bg-amber-50",
-      labelClassName: "text-amber-700",
-      valueClassName: "text-amber-700",
-      badgeClassName: "border-amber-200 bg-white/70 text-amber-700",
-    };
-  }
+  const normalizedValue = getRelativeRiskValue(regionalRisk, key);
+  const band = getRiskBand(normalizedValue);
+  const bandClasses = getRiskBandClasses(normalizedValue);
 
   return {
-    label: "Low",
-    className: "border-leaf/30 bg-moss/40",
-    labelClassName: "text-forest",
-    valueClassName: "text-forest",
-    badgeClassName: "border-leaf/30 bg-white/70 text-forest",
+    label: band.charAt(0).toUpperCase() + band.slice(1),
+    ...bandClasses,
   };
 }
 
