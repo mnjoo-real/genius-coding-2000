@@ -1,57 +1,24 @@
-import Card from '../ui/Card';
-import Badge from '../ui/Badge';
-import Button from '../ui/Button';
+import { Link } from 'react-router-dom';
 
-const badgeVariant = {
-  uploaded: 'success',
-  missing:  'danger',
-  optional: 'neutral',
-};
-
-const badgeLabel = {
-  uploaded: 'Uploaded',
-  missing:  'Missing',
-  optional: 'Optional',
-};
-
-function CheckCircle() {
+export default function RecoveryPreviewCard() {
   return (
-    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
-      <circle cx="9" cy="9" r="8" stroke="currentColor" strokeWidth="1.5" />
-      <path
-        d="M5.5 9l2.5 2.5 4.5-5"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-export default function RecoveryPreviewCard({ docName, status = 'optional', onUpload }) {
-  const variant = badgeVariant[status] ?? 'neutral';
-  const label = badgeLabel[status] ?? status;
-
-  return (
-    <Card padding="sm">
-      <div className="flex items-center gap-3">
-        <span className="flex-1 text-sm font-medium text-stone-800 truncate">{docName}</span>
-        <Badge variant={variant} size="sm">{label}</Badge>
-        {status === 'uploaded' && (
-          <span className="text-leaf shrink-0">
-            <CheckCircle />
-          </span>
-        )}
-        {status === 'missing' && (
-          <Button variant="primary" size="sm" onClick={onUpload}>
-            Upload
-          </Button>
-        )}
-        {status === 'optional' && (
-          <span className="text-xs text-stone-400 shrink-0">not required</span>
-        )}
-      </div>
-    </Card>
+    <div className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
+      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
+        Recovery Center
+      </p>
+      <h3 className="mt-2 text-lg font-semibold text-stone-900">
+        Get recovery-ready in one place
+      </h3>
+      <p className="mt-2 text-sm leading-6 text-stone-600">
+        Prepare recovery documents, organize home photo records, and track mock aid application
+        steps before disaster recovery becomes urgent.
+      </p>
+      <Link
+        to="/recovery"
+        className="mt-4 inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-800 transition-colors hover:bg-emerald-100"
+      >
+        Open Recovery Center
+      </Link>
+    </div>
   );
 }
