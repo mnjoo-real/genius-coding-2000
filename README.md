@@ -35,33 +35,37 @@ The project connects environmental disaster preparedness with recovery support b
 
 ## Screenshots / Demo
 
-<p align="center">
-  <img src="src/assets/images/image1.png" width="600" alt="Canopy Screenshot 1" />
-</p>
-
-<p align="center">
-  <img src="src/assets/images/image2.png" width="600" alt="Canopy Screenshot 2" />
-</p>
-
-<p align="center">
-  <img src="src/assets/images/image3.png" width="600" alt="Canopy Screenshot 3" />
-</p>
-
-<p align="center">
-  <img src="src/assets/images/image4.png" width="600" alt="Canopy Screenshot 4" />
-</p>
-
-<p align="center">
-  <img src="src/assets/images/image5.png" width="600" alt="Canopy Screenshot 5" />
-</p>
-
-<p align="center">
-  <img src="src/assets/images/image6.png" width="600" alt="Canopy Screenshot 6" />
-</p>
-
-<p align="center">
-  <img src="src/assets/images/image7.png" width="600" alt="Canopy Screenshot 7" />
-</p>
+<table>
+  <tr>
+    <td align="center">
+      <img src="src/assets/images/image1.png" width="600" alt="Canopy Screenshot 1" />
+    </td>
+    <td align="center">
+      <img src="src/assets/images/image2.png" width="600" alt="Canopy Screenshot 2" />
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <img src="src/assets/images/image3.png" width="600" alt="Canopy Screenshot 3" />
+    </td>
+    <td align="center">
+      <img src="src/assets/images/image4.png" width="600" alt="Canopy Screenshot 4" />
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <img src="src/assets/images/image5.png" width="600" alt="Canopy Screenshot 5" />
+    </td>
+    <td align="center">
+      <img src="src/assets/images/image6.png" width="600" alt="Canopy Screenshot 6" />
+    </td>
+  </tr>
+  <tr>
+    <td colspan="2" align="center">
+      <img src="src/assets/images/image7.png" width="600" alt="Canopy Screenshot 7" />
+    </td>
+  </tr>
+</table>
 
 ## Tech Stack
 
