@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ProgressStepper from '../components/layout/ProgressStepper';
 import QuestionCard from '../components/questionnaire/QuestionCard';
@@ -12,9 +12,57 @@ const STEPS = [
   { label: 'Your Score' },
 ];
 
+function safeParseObject(rawValue) {
+  if (!rawValue) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(rawValue);
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      return parsed;
+    }
+  } catch {
+    // Ignore invalid saved profile data.
+  }
+
+  return null;
+}
+
+function getQuestionnaireAnswers(profile) {
+  if (!profile || typeof profile !== 'object' || Array.isArray(profile)) {
+    return {};
+  }
+
+  return homeQuestions.reduce((nextAnswers, question) => {
+    if (!(question.id in profile)) {
+      return nextAnswers;
+    }
+
+    nextAnswers[question.id] = profile[question.id];
+    return nextAnswers;
+  }, {});
+}
+
 export default function HomeQuestionnaire() {
   const navigate = useNavigate();
   const [answers, setAnswers] = useState({});
+  const [savedProfile, setSavedProfile] = useState(null);
+  const [isEditingSavedProfile, setIsEditingSavedProfile] = useState(false);
+
+  useEffect(() => {
+    const rawProfile = localStorage.getItem('homeProfile');
+    const parsedProfile = safeParseObject(rawProfile);
+    setSavedProfile(parsedProfile);
+  }, []);
+
+  useEffect(() => {
+    if (!isEditingSavedProfile) {
+      return;
+    }
+
+    setAnswers(getQuestionnaireAnswers(savedProfile));
+  }, [savedProfile, isEditingSavedProfile]);
 
   const total = homeQuestions.length;
 
@@ -34,7 +82,44 @@ export default function HomeQuestionnaire() {
     if (!isComplete) return;
     const homeProfile = { ...answers, savedAt: new Date().toISOString() };
     localStorage.setItem('homeProfile', JSON.stringify(homeProfile));
+    setSavedProfile(homeProfile);
     navigate('/dashboard');
+  }
+
+  function handleEditResponse() {
+    setIsEditingSavedProfile(true);
+  }
+
+  if (savedProfile && !isEditingSavedProfile) {
+    return (
+      <main className="min-h-screen bg-parchment pb-20">
+        <div className="mx-auto max-w-3xl px-4 pt-10">
+          <div className="mb-8">
+            <ProgressStepper steps={STEPS} currentStep={2} />
+          </div>
+
+          <section className="rounded-3xl border border-stone-200 bg-white p-8 shadow-sm">
+            <h1 className="text-3xl mb-2 text-stone-900">Home questionnaire already completed</h1>
+            <p className="text-stone-500 mb-8">
+              You already answered the home assessment. You can review your saved profile or edit
+              your responses.
+            </p>
+
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+              <Button variant="primary" onClick={() => navigate('/user-info')}>
+                View User Info
+              </Button>
+              <Button variant="secondary" onClick={() => navigate('/dashboard')}>
+                Go to Dashboard
+              </Button>
+              <Button variant="secondary" onClick={handleEditResponse}>
+                Edit Response
+              </Button>
+            </div>
+          </section>
+        </div>
+      </main>
+    );
   }
 
   return (

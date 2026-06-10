@@ -8,6 +8,7 @@ import RiskOverview from "./pages/RiskOverview";
 import HomeQuestionnaire from "./pages/HomeQuestionnaire";
 import ScoreDashboard from "./pages/ScoreDashboard";
 import Recovery from "./pages/Recovery";
+import UserInfo from "./pages/UserInfo";
 
 function AppLayout() {
   return (
@@ -22,6 +23,7 @@ function AppLayout() {
           <Route path="/questionnaire" element={<HomeQuestionnaire />} />
           <Route path="/dashboard" element={<ScoreDashboard />} />
           <Route path="/recovery" element={<Recovery />} />
+          <Route path="/user-info" element={<UserInfo />} />
         </Routes>
       </div>
       <Footbar />
