@@ -1,13 +1,7 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { calculateScore } from "../utils/calculateScore";
-import {
-  canSyncPreparednessProfile,
-  fetchPreparednessSnapshotFromSupabase,
-  hydratePreparednessSnapshotToLocalStorage,
-  readPreparednessSnapshot,
-  syncPreparednessProfileToSupabase,
-} from "../services/userInfoSyncService";
+import { readPreparednessSnapshot } from "../services/userInfoSyncService";
 
 function formatLabel(value) {
   if (!value) {
@@ -233,12 +227,7 @@ function PreparednessReport({ selectedZipCode, scoreData, scoreUnavailable }) {
 }
 
 export default function UserInfo() {
-  const [preparednessSnapshot, setPreparednessSnapshot] = useState(() => readPreparednessSnapshot());
-  const [syncState, setSyncState] = useState({
-    status: "idle",
-    message: "",
-    syncedAt: null,
-  });
+  const [preparednessSnapshot] = useState(() => readPreparednessSnapshot());
 
   const selectedZipCode = preparednessSnapshot.selectedZipCode;
   const regionalRisk = preparednessSnapshot.regionalRisk;
@@ -258,118 +247,6 @@ export default function UserInfo() {
       return { scoreData: null, scoreUnavailable: true };
     }
   }, [regionalRisk, homeProfile]);
-
-  const hasPreparednessProfile = Boolean(selectedZipCode && regionalRisk && homeProfile);
-  const canSync = canSyncPreparednessProfile(preparednessSnapshot);
-  const autoSyncFingerprint = useMemo(
-    () =>
-      JSON.stringify({
-        selectedZipCode,
-        regionalRisk,
-        homeProfile,
-      }),
-    [homeProfile, regionalRisk, selectedZipCode]
-  );
-  const lastAutoSyncFingerprintRef = useRef("");
-
-  useEffect(() => {
-    if (selectedZipCode && regionalRisk && homeProfile) {
-      return;
-    }
-
-    let cancelled = false;
-
-    async function hydrateFromSupabase() {
-      try {
-        const remoteSnapshot = await fetchPreparednessSnapshotFromSupabase();
-
-        if (cancelled || !remoteSnapshot) {
-          return;
-        }
-
-        hydratePreparednessSnapshotToLocalStorage(remoteSnapshot);
-        lastAutoSyncFingerprintRef.current = JSON.stringify({
-          selectedZipCode: remoteSnapshot.selectedZipCode,
-          regionalRisk: remoteSnapshot.regionalRisk,
-          homeProfile: remoteSnapshot.homeProfile,
-        });
-        setPreparednessSnapshot({
-          selectedZipCode: remoteSnapshot.selectedZipCode ?? null,
-          regionalRisk: remoteSnapshot.regionalRisk ?? null,
-          homeProfile: remoteSnapshot.homeProfile ?? null,
-        });
-      } catch (error) {
-        if (!cancelled) {
-          console.warn("Unable to load preparedness profile from Supabase:", error);
-        }
-      }
-    }
-
-    void hydrateFromSupabase();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [homeProfile, regionalRisk, selectedZipCode]);
-
-  const handleSyncToSupabase = useCallback(async () => {
-    if (!hasPreparednessProfile) {
-      setSyncState({
-        status: "error",
-        message: "Complete the location and home profile before syncing to Supabase.",
-        syncedAt: null,
-      });
-      return;
-    }
-
-    setSyncState((currentState) => ({
-      ...currentState,
-      status: "syncing",
-      message: "Saving location, home profile, and score summary to Supabase...",
-    }));
-
-    try {
-      const result = await syncPreparednessProfileToSupabase(preparednessSnapshot);
-
-      if (!result.ok) {
-        setSyncState({
-          status: "warning",
-          message: result.message,
-          syncedAt: null,
-        });
-        return;
-      }
-
-      setSyncState({
-        status: "success",
-        message:
-          "Saved to Supabase tables: user_profiles, location_profiles, home_profiles, readiness_score_snapshots.",
-        syncedAt: result.syncedAt,
-      });
-    } catch (error) {
-      setSyncState({
-        status: "error",
-        message:
-          error instanceof Error
-            ? error.message
-            : "Supabase sync failed. Check your table schema and RLS policies.",
-        syncedAt: null,
-      });
-    }
-  }, [hasPreparednessProfile, preparednessSnapshot]);
-
-  useEffect(() => {
-    if (!hasPreparednessProfile || !canSync) {
-      return;
-    }
-
-    if (lastAutoSyncFingerprintRef.current === autoSyncFingerprint) {
-      return;
-    }
-
-    lastAutoSyncFingerprintRef.current = autoSyncFingerprint;
-    void handleSyncToSupabase();
-  }, [autoSyncFingerprint, canSync, handleSyncToSupabase, hasPreparednessProfile]);
 
   if (!homeProfile || !regionalRisk) {
     return (
@@ -415,8 +292,8 @@ export default function UserInfo() {
             </p>
             <h1 className="mt-2 text-3xl sm:text-4xl">User Info</h1>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-stone-600">
-              Review your saved location, home assessment answers, and readiness profile in one
-              report.
+              Review the location, home assessment answers, and readiness profile saved in this
+              browser.
             </p>
           </div>
 
@@ -478,55 +355,27 @@ export default function UserInfo() {
               <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.2em] text-stone-400">
-                    Supabase sync
+                    Local storage
                   </p>
-                  <h2 className="mt-1 text-xl">Pre-disaster profile export</h2>
+                  <h2 className="mt-1 text-xl">Saved profile source</h2>
                 </div>
                 <span className="text-xs text-stone-400">
-                  {canSync ? "Ready to sync" : "Supabase env missing or profile incomplete"}
+                  Browser only
                 </span>
               </div>
 
               <p className="mt-4 max-w-3xl text-sm leading-6 text-stone-600">
-                This page only syncs your location, regional risk, home questionnaire answers, and
-                readiness score summary. Recovery and disaster workflow data stay out of this
-                export.
+                Login state and questionnaire data are stored locally on this device. ZIP code
+                lookup still uses the Supabase-backed regional risk data source before saving the
+                resolved risk profile here.
               </p>
 
-              <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-                <button
-                  type="button"
-                  onClick={handleSyncToSupabase}
-                  disabled={!canSync || syncState.status === "syncing"}
-                  className="inline-flex items-center justify-center rounded-full bg-emerald-700 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-stone-300"
-                >
-                  {syncState.status === "syncing" ? "Syncing..." : "Save to Supabase"}
-                </button>
-                <div className="rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm text-stone-600">
-                  <p className="font-medium text-stone-900">Tables used</p>
-                  <p className="mt-1 text-xs leading-5">
-                    user_profiles, location_profiles, home_profiles, readiness_score_snapshots
-                  </p>
-                </div>
-              </div>
-
-              <div
-                className={`mt-5 rounded-xl border px-4 py-3 text-sm leading-6 ${
-                  syncState.status === "success"
-                    ? "border-emerald-200 bg-emerald-50 text-emerald-900"
-                    : syncState.status === "warning"
-                      ? "border-amber-200 bg-amber-50 text-amber-900"
-                      : syncState.status === "error"
-                        ? "border-red-200 bg-red-50 text-red-900"
-                        : "border-stone-200 bg-stone-50 text-stone-600"
-                }`}
-              >
-                {syncState.message || "Supabase sync status will appear here."}
-                {syncState.syncedAt ? (
-                  <p className="mt-1 text-xs uppercase tracking-[0.14em]">
-                    Last synced {new Date(syncState.syncedAt).toLocaleString()}
-                  </p>
-                ) : null}
+              <div className="mt-5 rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm text-stone-600">
+                <p className="font-medium text-stone-900">Keys used</p>
+                <p className="mt-1 text-xs leading-5">
+                  selectedZipCode, regionalRisk, homeProfile, canopyLocalAuthSession,
+                  canopyLocalAuthUsers
+                </p>
               </div>
             </section>
 

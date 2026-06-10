@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../context/AuthContext';
+import { signOutLocalAccount } from '../../services/localAuthService';
 
 const baseNavLinks = [
   { label: 'Home', to: '/' },
@@ -54,16 +54,9 @@ export default function Navbar() {
       : { label: 'Login', to: '/login' },
   ];
 
-  async function handleLogout() {
+  function handleLogout() {
     setOpen(false);
-
-    if (!supabase) {
-      navigate('/login');
-      return;
-    }
-
-    await supabase.auth.signOut();
-    setOpen(false);
+    signOutLocalAccount();
     navigate('/login');
   }
 
@@ -116,7 +109,7 @@ export default function Navbar() {
                 <NavButton
                   label={link.label}
                   onClick={() => {
-                    void handleLogout();
+                    handleLogout();
                   }}
                 />
               ) : (

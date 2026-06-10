@@ -1,14 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ProgressStepper from '../components/layout/ProgressStepper';
 import QuestionCard from '../components/questionnaire/QuestionCard';
 import Button from '../components/ui/Button';
 import { homeQuestions } from '../data/homeQuestions';
-import {
-  fetchPreparednessSnapshotFromSupabase,
-  hydratePreparednessSnapshotToLocalStorage,
-  syncPreparednessProfileToSupabase,
-} from '../services/userInfoSyncService';
 
 const STEPS = [
   { label: 'Location' },
@@ -52,50 +47,10 @@ function getQuestionnaireAnswers(profile) {
 export default function HomeQuestionnaire() {
   const navigate = useNavigate();
   const [answers, setAnswers] = useState({});
-  const [savedProfile, setSavedProfile] = useState(null);
+  const [savedProfile, setSavedProfile] = useState(() =>
+    safeParseObject(localStorage.getItem('homeProfile'))
+  );
   const [isEditingSavedProfile, setIsEditingSavedProfile] = useState(false);
-
-  useEffect(() => {
-    const rawProfile = localStorage.getItem('homeProfile');
-    const parsedProfile = safeParseObject(rawProfile);
-
-    if (parsedProfile) {
-      setSavedProfile(parsedProfile);
-      return;
-    }
-
-    let cancelled = false;
-
-    async function loadFromSupabase() {
-      try {
-        const remoteSnapshot = await fetchPreparednessSnapshotFromSupabase();
-        if (cancelled || !remoteSnapshot?.homeProfile) {
-          return;
-        }
-
-        hydratePreparednessSnapshotToLocalStorage(remoteSnapshot);
-        setSavedProfile(remoteSnapshot.homeProfile);
-      } catch (error) {
-        if (!cancelled) {
-          console.warn('Unable to load saved home profile from Supabase:', error);
-        }
-      }
-    }
-
-    void loadFromSupabase();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!isEditingSavedProfile) {
-      return;
-    }
-
-    setAnswers(getQuestionnaireAnswers(savedProfile));
-  }, [savedProfile, isEditingSavedProfile]);
 
   const total = homeQuestions.length;
 
@@ -116,13 +71,11 @@ export default function HomeQuestionnaire() {
     const homeProfile = { ...answers, savedAt: new Date().toISOString() };
     localStorage.setItem('homeProfile', JSON.stringify(homeProfile));
     setSavedProfile(homeProfile);
-    void syncPreparednessProfileToSupabase().catch((error) => {
-      console.warn('Unable to sync preparedness profile to Supabase:', error);
-    });
     navigate('/dashboard');
   }
 
   function handleEditResponse() {
+    setAnswers(getQuestionnaireAnswers(savedProfile));
     setIsEditingSavedProfile(true);
   }
 

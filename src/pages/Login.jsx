@@ -1,8 +1,11 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { linkAuthUserToPreparednessProfile } from "../services/authProfileLinkService";
-import { supabase } from "../lib/supabaseClient";
+import {
+  createLocalAccount,
+  signInLocalAccount,
+  signOutLocalAccount,
+} from "../services/localAuthService";
 
 function Field({ id, label, type, value, onChange, placeholder, autoComplete }) {
   return (
@@ -31,24 +34,8 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [status, setStatus] = useState({ type: "idle", message: "" });
   const isSubmitting = status.type === "loading";
-  const isRateLimited = status.type === "error" && /rate limit/i.test(status.message);
 
-  async function linkAuthProfile(data) {
-    const authUserId = data?.user?.id ?? data?.session?.user?.id;
-    const linkResult = await linkAuthUserToPreparednessProfile(authUserId);
-
-    if (!linkResult.ok) {
-      setStatus({
-        type: "error",
-        message: linkResult.message,
-      });
-      return false;
-    }
-
-    return true;
-  }
-
-  async function handleSignIn() {
+  function handleSignIn() {
     if (isSubmitting) {
       return;
     }
@@ -58,41 +45,25 @@ export default function Login() {
       return;
     }
 
-    if (!supabase) {
-      setStatus({
-        type: "error",
-        message: "Supabase client is not configured in this environment.",
-      });
-      return;
-    }
-
     setStatus({ type: "loading", message: "Signing in..." });
 
-    const { data, error } = await supabase.auth.signInWithPassword({
+    const result = signInLocalAccount({
       email,
       password,
     });
 
-    if (error) {
+    if (!result.ok) {
       setStatus({
         type: "error",
-        message:
-          error.status === 429
-            ? "Supabase Auth rate limit reached. Wait a moment before trying again."
-            : error.message,
+        message: result.message,
       });
-      return;
-    }
-
-    const isLinked = await linkAuthProfile(data);
-    if (!isLinked) {
       return;
     }
 
     navigate("/");
   }
 
-  async function handleCreateAccount() {
+  function handleCreateAccount() {
     if (isSubmitting) {
       return;
     }
@@ -105,40 +76,20 @@ export default function Login() {
       return;
     }
 
-    if (!supabase) {
-      setStatus({
-        type: "error",
-        message: "Supabase client is not configured in this environment.",
-      });
-      return;
-    }
-
     setStatus({ type: "loading", message: "Creating account..." });
 
-    const { data, error } = await supabase.auth.signUp({
+    const result = createLocalAccount({
+      firstName,
+      lastName,
       email,
       password,
-      options: {
-        data: {
-          first_name: firstName,
-          last_name: lastName,
-        },
-      },
     });
 
-    if (error) {
+    if (!result.ok) {
       setStatus({
         type: "error",
-        message:
-          error.status === 429
-            ? "Supabase Auth rate limit reached. Wait a moment before trying again."
-            : error.message,
+        message: result.message,
       });
-      return;
-    }
-
-    const isLinked = await linkAuthProfile(data);
-    if (!isLinked) {
       return;
     }
 
@@ -146,17 +97,11 @@ export default function Login() {
   }
 
   function handleContinueAsGuest() {
-    console.log("TODO: continue as guest without auth", { email });
     navigate("/");
   }
 
-  async function handleLogout() {
-    if (!supabase) {
-      navigate("/login");
-      return;
-    }
-
-    await supabase.auth.signOut();
+  function handleLogout() {
+    signOutLocalAccount();
     navigate("/login");
   }
 
@@ -173,14 +118,14 @@ export default function Login() {
                 Welcome back
               </h1>
               <p className="mt-4 max-w-xl text-sm leading-6 text-stone-600">
-                Sign in to save your recovery profile across devices.
+                Sign in to keep this browser's preparedness profile organized locally.
               </p>
 
               <div className="mt-8 rounded-2xl border border-stone-200 bg-white/80 p-5">
                 <p className="text-sm font-medium text-stone-900">Why this page exists</p>
                 <p className="mt-2 text-sm leading-6 text-stone-600">
-                  Supabase Auth now links to your existing guest profile_id without changing the
-                  localStorage workflow.
+                  Accounts, session state, and profile data are stored in localStorage. ZIP code
+                  risk lookup still uses the configured Supabase data source.
                 </p>
               </div>
             </div>
@@ -205,7 +150,7 @@ export default function Login() {
                     <button
                       type="button"
                       onClick={() => navigate("/")}
-                      disabled={isSubmitting || isRateLimited}
+                      disabled={isSubmitting}
                       className="inline-flex w-full items-center justify-center rounded-full bg-forest px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-emerald-900"
                     >
                       Go to Home
@@ -214,7 +159,7 @@ export default function Login() {
                     <button
                       type="button"
                       onClick={handleLogout}
-                      disabled={isSubmitting || isRateLimited}
+                      disabled={isSubmitting}
                       className="inline-flex w-full items-center justify-center rounded-full border border-stone-200 bg-white px-5 py-3 text-sm font-semibold text-stone-800 transition-colors hover:border-stone-300 hover:bg-stone-50"
                     >
                       Logout
@@ -270,7 +215,7 @@ export default function Login() {
                       <button
                         type="button"
                         onClick={handleSignIn}
-                        disabled={isSubmitting || isRateLimited}
+                        disabled={isSubmitting}
                         className="inline-flex items-center justify-center rounded-full bg-forest px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-emerald-900"
                       >
                         Sign In
@@ -279,7 +224,7 @@ export default function Login() {
                       <button
                         type="button"
                         onClick={handleCreateAccount}
-                        disabled={isSubmitting || isRateLimited}
+                        disabled={isSubmitting}
                         className="inline-flex items-center justify-center rounded-full border border-stone-200 bg-white px-5 py-3 text-sm font-semibold text-stone-800 transition-colors hover:border-stone-300 hover:bg-stone-50"
                       >
                         Create Account
@@ -288,7 +233,7 @@ export default function Login() {
                       <button
                         type="button"
                         onClick={handleContinueAsGuest}
-                        disabled={isSubmitting || isRateLimited}
+                        disabled={isSubmitting}
                         className="inline-flex items-center justify-center rounded-full border border-dashed border-stone-300 bg-transparent px-5 py-3 text-sm font-semibold text-stone-700 transition-colors hover:border-stone-400 hover:bg-stone-50"
                       >
                         Continue as Guest
@@ -296,7 +241,7 @@ export default function Login() {
                     </div>
 
                     <p className="mt-6 text-xs leading-5 text-stone-500">
-                      Sign in and create account now use Supabase Auth. Guest flow is unchanged.
+                      Local accounts stay on this device and are not synced across browsers.
                     </p>
 
                     {status.message ? (
