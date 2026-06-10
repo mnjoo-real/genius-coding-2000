@@ -1,152 +1,69 @@
 import { Link } from "react-router-dom";
 import RiskBarChart from "../components/risk/RiskBarChart";
-import RiskCard from "../components/risk/RiskCard";
-import { getRiskLevel } from "../utils/getRiskLevel";
-import { getTopRisks } from "../utils/getTopRisks";
 
-const riskCategoryFields = [
-  {
-    label: "Flood",
-    field: "floodRisk",
-    color: "#6d8f4a",
-    description: "Regional exposure to flooding and stormwater impacts.",
-  },
-  {
-    label: "Wildfire",
-    field: "wildfireRisk",
-    color: "#ef4444",
-    description: "Regional exposure to wildfire and ember-related hazards.",
-  },
-  {
-    label: "Heat Wave",
-    field: "heatRisk",
-    color: "#f59e0b",
-    description: "Regional exposure to extended high-heat conditions.",
-  },
-  {
-    label: "Storm",
-    field: "stormRisk",
-    color: "#2f5d40",
-    description: "Regional exposure to severe storms, wind, and heavy rain.",
-  },
-  {
-    label: "Winter Storm",
-    field: "winterStormRisk",
-    color: "#a8b89a",
-    description: "Regional exposure to snow, ice, and freezing conditions.",
-  },
+const RISK_FIELDS = [
+  { label: "Flood",        field: "floodRisk",       color: "#6d8f4a" },
+  { label: "Wildfire",     field: "wildfireRisk",     color: "#ef4444" },
+  { label: "Heat Wave",    field: "heatRisk",         color: "#f59e0b" },
+  { label: "Storm",        field: "stormRisk",        color: "#2f5d40" },
+  { label: "Winter Storm", field: "winterStormRisk",  color: "#a8b89a" },
 ];
 
 function readRegionalRisk() {
-  if (typeof window === "undefined") {
-    return null;
-  }
-
-  let storedRegionalRisk;
-
+  if (typeof window === "undefined") return null;
   try {
-    storedRegionalRisk = window.localStorage.getItem("regionalRisk");
-  } catch {
-    return null;
-  }
-
-  if (!storedRegionalRisk) {
-    return null;
-  }
-
-  try {
-    const parsedRegionalRisk = JSON.parse(storedRegionalRisk);
-
-    if (
-      !parsedRegionalRisk ||
-      typeof parsedRegionalRisk !== "object" ||
-      Array.isArray(parsedRegionalRisk)
-    ) {
-      return null;
-    }
-
-    return parsedRegionalRisk;
+    const raw = window.localStorage.getItem("regionalRisk");
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
+    return parsed;
   } catch {
     return null;
   }
 }
 
-function getRegionValue(value, fallback) {
+function str(value, fallback) {
   return typeof value === "string" && value.trim() ? value : fallback;
-}
-
-function getDisplayValue(value, fallback) {
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return String(value);
-  }
-
-  return getRegionValue(value, fallback);
-}
-
-function getRiskScore(value) {
-  return typeof value === "number" && Number.isFinite(value) ? value : 0;
 }
 
 export default function RiskOverview() {
   const regionalRisk = readRegionalRisk();
+
   const regionSummary = regionalRisk
     ? {
-        city: getRegionValue(regionalRisk.city, "City unavailable"),
-        state: getRegionValue(regionalRisk.state, "State unavailable"),
-        zipCode: getRegionValue(regionalRisk.zipCode, "ZIP unavailable"),
-        stateCode: getRegionValue(
-          regionalRisk.stateCode,
-          "State code unavailable"
-        ),
-        latitude: getDisplayValue(
-          regionalRisk.latitude,
-          "Latitude unavailable"
-        ),
-        longitude: getDisplayValue(
-          regionalRisk.longitude,
-          "Longitude unavailable"
-        ),
-        zipLookupSource: getRegionValue(regionalRisk.zipLookupSource, ""),
+        city:    str(regionalRisk.city,    "City unavailable"),
+        state:   str(regionalRisk.state,   "State unavailable"),
+        zipCode: str(regionalRisk.zipCode, "ZIP unavailable"),
       }
     : null;
-  const riskCategories = regionalRisk
-    ? riskCategoryFields.map((riskCategory) => {
-        const score = getRiskScore(regionalRisk[riskCategory.field]);
 
-        return {
-          ...riskCategory,
-          score,
-          level: getRiskLevel(score).toLowerCase(),
-        };
-      })
+  const chartRisks = regionalRisk
+    ? RISK_FIELDS.map(({ label, field, color }) => ({
+        label,
+        value: typeof regionalRisk[field] === "number" ? regionalRisk[field] : 0,
+        color,
+      }))
     : [];
-  const chartRisks = riskCategories.map((riskCategory) => ({
-    label: riskCategory.label,
-    value: riskCategory.score,
-    color: riskCategory.color,
-  }));
-  const topRisks = regionalRisk ? getTopRisks(regionalRisk) : [];
 
   return (
-    <main className="min-h-screen bg-parchment px-6 py-12 sm:py-16">
-      <section className="mx-auto max-w-5xl">
+    <main className="bg-parchment px-6 py-6">
+      <section className="mx-auto max-w-4xl">
+
+        {/* Page header */}
         <p className="text-sm font-medium uppercase tracking-[0.25em] text-leaf">
           Regional Risk
         </p>
-        <h1 className="mt-4 text-4xl sm:text-5xl">
-          Regional Risk Overview
-        </h1>
-        <p className="mt-5 max-w-2xl text-base text-stone-600 sm:text-lg">
-          Review the regional risk profile before answering the home readiness
-          questions.
+        <h1 className="mt-2 text-4xl sm:text-5xl">Regional Risk Overview</h1>
+        <p className="mt-2 text-base text-stone-600">
+          Your area's risk profile.
         </p>
 
         {!regionalRisk ? (
-          <div className="mt-8 rounded-2xl border border-stone-200 bg-white p-6 shadow-sm sm:p-8">
+          /* ── Fallback ─────────────────────────────────────────────── */
+          <div className="mt-8 rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
             <h2 className="text-2xl">We need your location first.</h2>
             <p className="mt-3 text-stone-600">
-              No regional risk profile is available yet. Go back to location
-              input to choose a ZIP code and prepare this overview.
+              No regional risk profile found. Go back to location input to choose a ZIP code.
             </p>
             <div className="mt-6">
               <Link
@@ -158,147 +75,67 @@ export default function RiskOverview() {
             </div>
           </div>
         ) : (
-          <div className="mt-8 grid gap-6">
-            <section className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm sm:p-8">
-              <p className="text-sm font-medium uppercase tracking-[0.2em] text-leaf">
+          /* ── Main content ─────────────────────────────────────────── */
+          <div className="mt-5 grid gap-4">
+
+            {/* Region Summary */}
+            <section className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
+              <p className="text-xs font-medium uppercase tracking-[0.2em] text-leaf">
                 Region Summary
               </p>
-              <h2 className="mt-3 text-2xl">
+              <h2 className="mt-2 text-xl">
                 {regionSummary.city}, {regionSummary.state}
               </h2>
-              <dl className="mt-5 grid gap-4 sm:grid-cols-3">
-                <div className="rounded-xl border border-stone-200 bg-parchment/60 p-4">
-                  <dt className="text-sm font-medium text-stone-500">City</dt>
-                  <dd className="mt-1 text-lg font-medium text-stone-900">
+              <dl className="mt-4 grid gap-3 sm:grid-cols-3">
+                <div className="rounded-xl border border-stone-200 bg-parchment/60 p-3">
+                  <dt className="text-xs font-medium text-stone-500">City</dt>
+                  <dd className="mt-1 text-base font-medium text-stone-900">
                     {regionSummary.city}
                   </dd>
                 </div>
-                <div className="rounded-xl border border-stone-200 bg-parchment/60 p-4">
-                  <dt className="text-sm font-medium text-stone-500">State</dt>
-                  <dd className="mt-1 text-lg font-medium text-stone-900">
+                <div className="rounded-xl border border-stone-200 bg-parchment/60 p-3">
+                  <dt className="text-xs font-medium text-stone-500">State</dt>
+                  <dd className="mt-1 text-base font-medium text-stone-900">
                     {regionSummary.state}
                   </dd>
                 </div>
-                <div className="rounded-xl border border-stone-200 bg-parchment/60 p-4">
-                  <dt className="text-sm font-medium text-stone-500">ZIP code</dt>
-                  <dd className="mt-1 text-lg font-medium text-stone-900">
+                <div className="rounded-xl border border-stone-200 bg-parchment/60 p-3">
+                  <dt className="text-xs font-medium text-stone-500">ZIP code</dt>
+                  <dd className="mt-1 text-base font-medium text-stone-900">
                     {regionSummary.zipCode}
                   </dd>
                 </div>
-                <div className="rounded-xl border border-stone-200 bg-parchment/60 p-4">
-                  <dt className="text-sm font-medium text-stone-500">
-                    State code
-                  </dt>
-                  <dd className="mt-1 text-lg font-medium text-stone-900">
-                    {regionSummary.stateCode}
-                  </dd>
-                </div>
-                <div className="rounded-xl border border-stone-200 bg-parchment/60 p-4">
-                  <dt className="text-sm font-medium text-stone-500">
-                    Latitude
-                  </dt>
-                  <dd className="mt-1 text-lg font-medium text-stone-900">
-                    {regionSummary.latitude}
-                  </dd>
-                </div>
-                <div className="rounded-xl border border-stone-200 bg-parchment/60 p-4">
-                  <dt className="text-sm font-medium text-stone-500">
-                    Longitude
-                  </dt>
-                  <dd className="mt-1 text-lg font-medium text-stone-900">
-                    {regionSummary.longitude}
-                  </dd>
-                </div>
               </dl>
-              {regionSummary.zipLookupSource ? (
-                <p className="mt-3 text-sm text-stone-500">
-                  Location details verified by {regionSummary.zipLookupSource}.
-                </p>
-              ) : null}
-              <p className="mt-3 text-stone-600">
-                This area profile is loaded from your saved location. Detailed
-                regional context will be added here next.
+            </section>
+
+            {/* Risk bar chart */}
+            <section className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
+              <p className="text-xs font-medium uppercase tracking-[0.2em] text-leaf">
+                Risk Profile
               </p>
-            </section>
-
-            <section className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
-              <div className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
-                <p className="text-sm font-medium uppercase tracking-[0.2em] text-leaf">
-                  Top Regional Risks
-                </p>
-                <h2 className="mt-3 text-2xl">Top Regional Risks</h2>
-                <p className="mt-3 text-stone-600">
-                  These are the three highest regional exposure categories for
-                  this saved location.
-                </p>
-                <ol className="mt-5 grid gap-3">
-                  {topRisks.map((risk) => (
-                    <li
-                      key={risk.key}
-                      className="rounded-xl border border-stone-200 bg-parchment/60 p-4"
-                    >
-                      <div className="flex items-start justify-between gap-4">
-                        <div>
-                          <p className="font-medium text-stone-900">
-                            {risk.label}
-                          </p>
-                          <p className="mt-1 text-sm text-stone-500">
-                            {getRiskLevel(risk.score)} risk
-                          </p>
-                        </div>
-                        <p className="shrink-0 text-lg font-medium tabular-nums text-forest">
-                          {risk.score}/100
-                        </p>
-                      </div>
-                    </li>
-                  ))}
-                </ol>
-              </div>
-
-              <div>
-                <p className="text-sm font-medium uppercase tracking-[0.2em] text-leaf">
-                  Risk Cards & Chart
-                </p>
-                <h2 className="mt-3 text-2xl">Risk visualization placeholder</h2>
-                <p className="mt-3 text-stone-600">
-                  Risk cards and a chart will summarize flood, wildfire, heat,
-                  storm, and winter storm exposure here.
-                </p>
-                <div className="mt-5 rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
-                  <RiskBarChart risks={chartRisks} />
-                </div>
-                <div className="mt-5 grid gap-3">
-                  {riskCategories.map((riskCategory) => (
-                    <RiskCard
-                      key={riskCategory.field}
-                      disasterType={riskCategory.label}
-                      riskLevel={riskCategory.level}
-                      riskPercent={riskCategory.score}
-                      description={riskCategory.description}
-                    />
-                  ))}
-                </div>
+              <div className="mt-4">
+                <RiskBarChart risks={chartRisks} />
               </div>
             </section>
 
-            <section className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm sm:flex sm:items-center sm:justify-between sm:gap-6">
+            {/* Next step */}
+            <section className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm sm:flex sm:items-center sm:justify-between sm:gap-6">
               <div>
-                <p className="text-sm font-medium uppercase tracking-[0.2em] text-leaf">
+                <p className="text-xs font-medium uppercase tracking-[0.2em] text-leaf">
                   Next Step
                 </p>
-                <h2 className="mt-3 text-2xl">Check your home readiness</h2>
-                <p className="mt-3 text-stone-600">
-                  Answer a short home check next so your regional risk profile
-                  can be paired with practical preparedness guidance.
+                <p className="mt-2 text-stone-700">
+                  Answer a short home check to get your personalized readiness score.
                 </p>
               </div>
               <Link
                 to="/questionnaire"
-                className="mt-6 inline-flex w-full items-center justify-center rounded-lg border border-transparent bg-leaf px-6 py-3 font-medium text-white transition-fast hover:bg-forest sm:mt-0 sm:w-auto"
+                className="mt-4 inline-flex w-full shrink-0 items-center justify-center rounded-lg border border-transparent bg-leaf px-6 py-3 font-medium text-white transition-fast hover:bg-forest sm:mt-0 sm:w-auto"
               >
                 Continue to Home Check
               </Link>
             </section>
+
           </div>
         )}
       </section>

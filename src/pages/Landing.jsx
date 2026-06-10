@@ -150,10 +150,18 @@ export default function Landing() {
     return () => ro.disconnect();
   }, []);
 
-  // Set initial camera once the globe has rendered
+  // Set initial camera and controls once the globe has rendered
   useEffect(() => {
     if (!globeReady || !globeRef.current) return;
     globeRef.current.pointOfView({ lat: 38, lng: -97, altitude: 2.2 }, 0);
+    // Small delay ensures OrbitControls are fully initialised before we mutate them
+    setTimeout(() => {
+      const controls = globeRef.current?.controls();
+      if (!controls) return;
+      controls.enableZoom = false;
+      controls.autoRotate = true;
+      controls.autoRotateSpeed = 0.5;
+    }, 150);
   }, [globeReady]);
 
   function handleSubmit(e) {
@@ -180,6 +188,12 @@ export default function Landing() {
         { lat: coords.lat, lng: coords.lng, altitude: 1.4 },
         1500
       );
+      // Re-assert auto-rotate so it survives the pointOfView call
+      const controls = globeRef.current.controls();
+      if (controls) {
+        controls.autoRotate = true;
+        controls.autoRotateSpeed = 0.5;
+      }
     }
   }
 
@@ -191,7 +205,7 @@ export default function Landing() {
         style={{ minHeight: 'calc(100vh - 3.5rem)' }}
       >
         {/* Left text + form panel */}
-        <div className="relative z-10 flex flex-col justify-center px-8 pt-14 pb-24 sm:px-12 lg:absolute lg:inset-y-0 lg:left-0 lg:w-[44%] lg:px-16 lg:pt-0 lg:pb-0">
+        <div className="relative z-20 flex flex-col justify-center px-8 pt-14 pb-24 sm:px-12 lg:absolute lg:inset-y-0 lg:left-0 lg:w-[44%] lg:pl-72 lg:pr-8 lg:pt-0 lg:pb-0">
 
           <p className="text-sm font-medium uppercase tracking-[0.25em] text-leaf mb-5">
             Eco-Disaster Preparedness
@@ -273,12 +287,17 @@ export default function Landing() {
                 atmosphereAltitude={0.28}
                 autoRotate
                 autoRotateSpeed={0.35}
-                pointsData={pinData}
-                pointLat="lat"
-                pointLng="lng"
-                pointRadius={0.55}
-                pointAltitude={0.03}
-                pointColor={() => '#6d8f4a'} /* var(--color-leaf) */
+                htmlElementsData={pinData}
+                htmlLat="lat"
+                htmlLng="lng"
+                htmlElement={() => {
+                  const el = document.createElement('div');
+                  el.innerHTML = '<svg width="26" height="36" viewBox="0 0 26 36" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M13 0C6.373 0 1 5.373 1 12c0 9.25 12 24 12 24S25 21.25 25 12C25 5.373 19.627 0 13 0z" fill="#E53935" stroke="#7f0000" stroke-width="1.5"/><circle cx="13" cy="12" r="4.5" fill="white" opacity="0.9"/></svg>';
+                  el.style.transform = 'translate(-50%, -100%)';
+                  el.style.filter = 'drop-shadow(0 2px 6px rgba(0,0,0,0.5))';
+                  el.style.pointerEvents = 'none';
+                  return el;
+                }}
                 onGlobeReady={() => setGlobeReady(true)}
               />
             </Suspense>
