@@ -22,15 +22,13 @@ function safeParseChecklist(rawValue) {
 }
 
 export default function HomePhotoGallery() {
-  const [checklist, setChecklist] = useState({});
-
-  useEffect(() => {
+  const [checklist, setChecklist] = useState(() => {
     if (typeof window === "undefined") {
-      return;
+      return {};
     }
 
-    setChecklist(safeParseChecklist(window.localStorage.getItem(STORAGE_KEY)));
-  }, []);
+    return safeParseChecklist(window.localStorage.getItem(STORAGE_KEY));
+  });
 
   useEffect(() => {
     if (typeof window === "undefined") {

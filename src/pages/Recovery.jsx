@@ -1,38 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import RecoveryChecklist from "../components/recovery/RecoveryChecklist";
-import HomePhotoGallery from "../components/recovery/HomePhotoGallery";
-import AidEligibilityForm from "../components/recovery/AidEligibilityForm";
+import RecoveryWorkspace from "../components/recovery/RecoveryWorkspace";
 import FemaAssistanceEstimateForm from "../components/recovery/FemaAssistanceEstimateForm";
-import DeadlineTracker from "../components/recovery/DeadlineTracker";
-import AidApplicationStatusList from "../components/recovery/AidApplicationStatusList";
-import { recoveryQuestionTiers } from "../data/recoveryQuestions";
 import { getFemaAssistanceEstimate } from "../services/femaAssistanceEstimateService";
-import { calculateAidDeadlines } from "../utils/calculateAidDeadlines";
-import { matchAidPrograms } from "../utils/matchAidPrograms";
 import {
-  buildRecoveryBaseAnswers,
-  clearLegacyRecoveryProfile,
-  clearRecoveryProfile,
-  readPreparednessSnapshot,
-  readRecoveryProfile,
-  saveRecoveryProfile,
+  readRecoveryFemaEstimator,
+  saveRecoveryFemaEstimator,
 } from "../services/userInfoSyncService";
-
-function stripBaseAnswers(answers, baseAnswers) {
-  if (!answers || typeof answers !== "object" || Array.isArray(answers)) {
-    return {};
-  }
-
-  const sanitizedAnswers = {};
-  Object.entries(answers).forEach(([key, value]) => {
-    if (!(key in baseAnswers) && key !== "femaEstimator") {
-      sanitizedAnswers[key] = value;
-    }
-  });
-
-  return sanitizedAnswers;
-}
 
 const INITIAL_FEMA_ESTIMATOR_ANSWERS = {
   zipCode: "",
@@ -44,6 +18,19 @@ const INITIAL_FEMA_ESTIMATOR_ANSWERS = {
   homeDamage: null,
   floodDamage: null,
 };
+
+const RECOVERY_SECTIONS = [
+  {
+    id: "fema",
+    label: "FEMA Assistance Estimate",
+    description: "Estimate FEMA IHP support from similar historical cases.",
+  },
+  {
+    id: "workspace",
+    label: "Damage Record Workspace",
+    description: "Collect photos, dates, damage types, and receipts.",
+  },
+];
 
 function formatMoney(value) {
   if (value === null || value === undefined || value === "") {
@@ -82,147 +69,18 @@ function formatRate(value) {
 }
 
 export default function Recovery() {
-  const [preparednessSnapshot] = useState(() => readPreparednessSnapshot());
-  const [initialRecoveryProfile] = useState(() => readRecoveryProfile());
-  const baseRecoveryAnswers = useMemo(
-    () => buildRecoveryBaseAnswers(preparednessSnapshot),
-    [preparednessSnapshot]
-  );
-  const initialRecoveryAnswers = useMemo(
-    () => stripBaseAnswers(initialRecoveryProfile, baseRecoveryAnswers),
-    [baseRecoveryAnswers, initialRecoveryProfile]
-  );
-  const [recoveryAnswers, setRecoveryAnswers] = useState(initialRecoveryAnswers);
-  const [hasMatched, setHasMatched] = useState(false);
-  const [isEditingDisasterProfile, setIsEditingDisasterProfile] = useState(false);
-  const [activeRecoveryTierId, setActiveRecoveryTierId] = useState(
-    recoveryQuestionTiers[0]?.id ?? null
-  );
-  const [femaEstimatorAnswers, setFemaEstimatorAnswers] = useState(() =>
-    ({
-      ...INITIAL_FEMA_ESTIMATOR_ANSWERS,
-      ...(initialRecoveryProfile && typeof initialRecoveryProfile === "object"
-        ? initialRecoveryProfile.femaEstimator
-        : {}),
-    })
-  );
+  const [activeSection, setActiveSection] = useState("workspace");
+  const [femaEstimatorAnswers, setFemaEstimatorAnswers] = useState(() => ({
+    ...INITIAL_FEMA_ESTIMATOR_ANSWERS,
+    ...readRecoveryFemaEstimator(),
+  }));
   const [femaEstimateResult, setFemaEstimateResult] = useState(null);
   const [femaEstimateLoading, setFemaEstimateLoading] = useState(false);
   const [femaEstimateError, setFemaEstimateError] = useState("");
-  const hasBaseRecoveryContext = Object.keys(baseRecoveryAnswers).length > 0;
-  const hasSavedRecoveryAnswers = Object.keys(recoveryAnswers).length > 0;
-  const hasDisasterProfile = hasBaseRecoveryContext || hasSavedRecoveryAnswers;
-  const combinedRecoveryAnswers = useMemo(
-    () => ({ ...baseRecoveryAnswers, ...recoveryAnswers }),
-    [baseRecoveryAnswers, recoveryAnswers]
-  );
-  const inheritedQuestionIds = useMemo(
-    () => Object.keys(baseRecoveryAnswers),
-    [baseRecoveryAnswers]
-  );
 
   useEffect(() => {
-    const hasFemaEstimatorAnswers = Object.values(femaEstimatorAnswers).some((value) => {
-      return value !== "" && value !== null && value !== undefined;
-    });
-
-    if (Object.keys(recoveryAnswers).length === 0) {
-      if (hasFemaEstimatorAnswers) {
-        saveRecoveryProfile({ femaEstimator: femaEstimatorAnswers }, { replace: true });
-      } else {
-        clearRecoveryProfile();
-      }
-      return;
-    }
-
-    saveRecoveryProfile({
-      ...recoveryAnswers,
-      femaEstimator: femaEstimatorAnswers,
-    }, { replace: true });
-    clearLegacyRecoveryProfile();
-  }, [femaEstimatorAnswers, recoveryAnswers]);
-
-  const matchedPrograms = useMemo(() => {
-    if (!hasMatched || !hasDisasterProfile) {
-      return [];
-    }
-
-    try {
-      return matchAidPrograms(combinedRecoveryAnswers);
-    } catch {
-      return [];
-    }
-  }, [combinedRecoveryAnswers, hasMatched, hasDisasterProfile]);
-
-  const aidDeadlines = useMemo(() => {
-    if (!hasMatched || !hasDisasterProfile || matchedPrograms.length === 0) {
-      return [];
-    }
-
-    try {
-      return calculateAidDeadlines(matchedPrograms, combinedRecoveryAnswers);
-    } catch {
-      return [];
-    }
-  }, [matchedPrograms, combinedRecoveryAnswers, hasMatched, hasDisasterProfile]);
-
-  const handleSubmit = (nextAnswers) => {
-    if (nextAnswers && typeof nextAnswers === "object" && !Array.isArray(nextAnswers)) {
-      const nextRecoveryAnswers = stripBaseAnswers(nextAnswers, baseRecoveryAnswers);
-      setRecoveryAnswers(nextRecoveryAnswers);
-      if (Object.keys(nextRecoveryAnswers).length === 0) {
-        clearRecoveryProfile();
-      } else {
-        saveRecoveryProfile(nextRecoveryAnswers);
-      }
-      clearLegacyRecoveryProfile();
-    }
-
-    setHasMatched(true);
-    setIsEditingDisasterProfile(false);
-    setActiveRecoveryTierId(null);
-  };
-
-  const handleCreateDisasterProfile = () => {
-    setRecoveryAnswers({});
-    setHasMatched(false);
-    setIsEditingDisasterProfile(true);
-    setActiveRecoveryTierId(recoveryQuestionTiers[0]?.id ?? null);
-  };
-
-  const handleEditDisasterProfile = () => {
-    setHasMatched(false);
-    setIsEditingDisasterProfile(true);
-    setActiveRecoveryTierId(recoveryQuestionTiers[0]?.id ?? null);
-  };
-
-  const handleReviewRecoveryPlan = () => {
-    setHasMatched(true);
-    setIsEditingDisasterProfile(false);
-    setActiveRecoveryTierId(null);
-  };
-
-  const handleCloseDisasterProfileEditor = () => {
-    setIsEditingDisasterProfile(false);
-    setActiveRecoveryTierId(null);
-  };
-
-  const handleStartNewDisasterProfile = () => {
-    if (
-      !window.confirm(
-        "Are you sure you want to clear the current disaster profile and start a new one?"
-      )
-    ) {
-      return;
-    }
-
-    clearRecoveryProfile();
-    setRecoveryAnswers({});
-    setFemaEstimatorAnswers(INITIAL_FEMA_ESTIMATOR_ANSWERS);
-    setHasMatched(false);
-    setIsEditingDisasterProfile(false);
-    setActiveRecoveryTierId(null);
-  };
+    saveRecoveryFemaEstimator(femaEstimatorAnswers);
+  }, [femaEstimatorAnswers]);
 
   const handleFemaEstimatorChange = (nextValues) => {
     setFemaEstimatorAnswers((currentValues) => ({
@@ -253,20 +111,12 @@ export default function Recovery() {
       console.error("Failed to load FEMA assistance estimate:", error);
       setFemaEstimateResult(null);
       setFemaEstimateError(
-        "We could not load the FEMA estimate right now. Please try again."
+        "We could not load the FEMA estimate right now. Please try again.",
       );
     } finally {
       setFemaEstimateLoading(false);
     }
   };
-
-  const shouldShowIntroCard = !hasDisasterProfile && !isEditingDisasterProfile;
-  const shouldShowBaseContextCard =
-    hasBaseRecoveryContext && !hasSavedRecoveryAnswers && !isEditingDisasterProfile && !hasMatched;
-  const shouldShowSavedProfileCard =
-    hasSavedRecoveryAnswers && !isEditingDisasterProfile && !hasMatched;
-  const shouldShowForm = isEditingDisasterProfile;
-  const shouldShowRecoveryPlan = hasDisasterProfile && hasMatched;
 
   return (
     <main className="min-h-screen bg-parchment px-6 py-10">
@@ -279,8 +129,8 @@ export default function Recovery() {
               </p>
               <h1 className="mt-2 text-3xl font-semibold text-stone-900">Recovery Center</h1>
               <p className="mt-3 max-w-3xl text-sm leading-6 text-stone-600">
-                This page organizes recovery documents, home photo records, mock aid matching,
-                deadlines, and application statuses so you can keep post-disaster steps in one
+                This page organizes recovery evidence, damaged-home photo records, FEMA estimate
+                inputs, receipt photos, and damage details so post-disaster records stay in one
                 place.
               </p>
             </div>
@@ -294,35 +144,41 @@ export default function Recovery() {
           </div>
         </section>
 
-        {shouldShowIntroCard ? (
-          <section className="rounded-3xl border border-stone-200 bg-white p-6 shadow-sm">
-            <h2 className="text-2xl font-semibold text-stone-900">Create Disaster Profile</h2>
-            <p className="mt-3 max-w-3xl text-sm leading-6 text-stone-600">
-              If your home or household was affected by a disaster, create a disaster profile to
-              organize aid programs, documents, evidence photos, deadlines, and application
-              status.
-            </p>
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-              <button
-                type="button"
-                onClick={handleCreateDisasterProfile}
-                className="inline-flex items-center justify-center rounded-full bg-emerald-700 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-emerald-800"
-              >
-                Create Disaster Profile
-              </button>
-              <Link
-                to="/dashboard"
-                className="inline-flex items-center justify-center rounded-full border border-stone-200 bg-stone-50 px-5 py-3 text-sm font-semibold text-stone-700 transition-colors hover:border-stone-300 hover:bg-stone-100"
-              >
-                Back to Dashboard
-              </Link>
-            </div>
-          </section>
-        ) : null}
+        <nav
+          aria-label="Recovery sections"
+          className="grid gap-3 rounded-3xl border border-stone-200 bg-white p-3 shadow-sm sm:grid-cols-2"
+        >
+          {RECOVERY_SECTIONS.map((section) => {
+            const isActive = activeSection === section.id;
 
-        <section className="rounded-3xl border border-sky-200 bg-sky-50/60 p-6 shadow-sm">
-          <div className="flex flex-col gap-4">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+            return (
+              <button
+                key={section.id}
+                type="button"
+                onClick={() => setActiveSection(section.id)}
+                aria-pressed={isActive}
+                className={`rounded-2xl border px-5 py-4 text-left transition-colors ${
+                  isActive
+                    ? "border-emerald-700 bg-emerald-700 text-white"
+                    : "border-stone-200 bg-stone-50 text-stone-800 hover:border-stone-300 hover:bg-stone-100"
+                }`}
+              >
+                <span className="block text-sm font-semibold">{section.label}</span>
+                <span
+                  className={`mt-1 block text-xs leading-5 ${
+                    isActive ? "text-emerald-50" : "text-stone-500"
+                  }`}
+                >
+                  {section.description}
+                </span>
+              </button>
+            );
+          })}
+        </nav>
+
+        {activeSection === "fema" ? (
+          <section className="rounded-3xl border border-sky-200 bg-sky-50/60 p-6 shadow-sm">
+            <div className="flex flex-col gap-4">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-700">
                   FEMA Assistance Estimate
@@ -334,228 +190,95 @@ export default function Recovery() {
                   Estimate a FEMA IHP range from similar historical cases.
                 </p>
               </div>
-            </div>
 
-            {femaEstimateError ? (
-              <p className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium leading-6 text-rose-700">
-                {femaEstimateError}
-              </p>
-            ) : null}
+              {femaEstimateError ? (
+                <p className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium leading-6 text-rose-700">
+                  {femaEstimateError}
+                </p>
+              ) : null}
 
-            <div className={`flex flex-col gap-6 ${femaEstimateResult ? "lg:flex-row" : ""}`}>
-              <section className={femaEstimateResult ? "lg:flex-[1.15] min-w-0" : "w-full"}>
-                <FemaAssistanceEstimateForm
-                  values={femaEstimatorAnswers}
-                  onChange={handleFemaEstimatorChange}
-                  onSubmit={handleFemaEstimatorSubmit}
-                  isSubmitting={femaEstimateLoading}
-                />
-              </section>
-
-              {femaEstimateResult ? (
-                <section className="rounded-3xl border border-stone-200 bg-white p-6 shadow-sm lg:flex-[0.85] min-w-0">
-                  <div className="flex items-start justify-between gap-4 border-b border-stone-100 pb-4">
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
-                        Estimate Result
-                      </p>
-                      <h3 className="mt-2 text-xl font-semibold text-stone-900">
-                        FEMA IHP estimate
-                      </h3>
-                    </div>
-                    <div className="group relative">
-                      <button
-                        type="button"
-                        aria-describedby="fema-estimate-disclaimer"
-                        className="flex h-7 w-7 items-center justify-center rounded-full border border-amber-300 bg-amber-100 text-sm font-bold text-amber-800 shadow-sm transition-colors hover:bg-amber-200 focus:outline-none focus:ring-2 focus:ring-amber-300"
-                      >
-                        !
-                      </button>
-                      <p
-                        id="fema-estimate-disclaimer"
-                        role="tooltip"
-                        className="pointer-events-none absolute right-0 top-9 z-10 w-72 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-950 opacity-0 shadow-lg transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
-                      >
-                        This estimate is based on historical FEMA Individuals and Households
-                        Program records. It is not a guarantee of FEMA eligibility or payment.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                    <div className="rounded-2xl border border-emerald-100 bg-emerald-50/70 p-4">
-                      <p className="text-xs font-medium uppercase tracking-[0.2em] text-emerald-700">
-                        Eligibility rate
-                      </p>
-                      <p className="mt-2 text-lg font-semibold text-stone-950">
-                        {formatRate(femaEstimateResult.eligibilityRate)}
-                      </p>
-                    </div>
-                    <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
-                      <p className="text-xs font-medium uppercase tracking-[0.2em] text-stone-500">
-                        Estimated low
-                      </p>
-                      <p className="mt-2 text-lg font-semibold text-stone-900">
-                        {formatMoney(femaEstimateResult.estimatedLow)}
-                      </p>
-                    </div>
-                    <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
-                      <p className="text-xs font-medium uppercase tracking-[0.2em] text-stone-500">
-                        Estimated median
-                      </p>
-                      <p className="mt-2 text-lg font-semibold text-stone-900">
-                        {formatMoney(femaEstimateResult.estimatedMedian)}
-                      </p>
-                    </div>
-                    <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
-                      <p className="text-xs font-medium uppercase tracking-[0.2em] text-stone-500">
-                        Estimated high
-                      </p>
-                      <p className="mt-2 text-lg font-semibold text-stone-900">
-                        {formatMoney(femaEstimateResult.estimatedHigh)}
-                      </p>
-                    </div>
-                  </div>
+              <div className={`flex flex-col gap-6 ${femaEstimateResult ? "lg:flex-row" : ""}`}>
+                <section className={femaEstimateResult ? "min-w-0 lg:flex-[1.15]" : "w-full"}>
+                  <FemaAssistanceEstimateForm
+                    values={femaEstimatorAnswers}
+                    onChange={handleFemaEstimatorChange}
+                    onSubmit={handleFemaEstimatorSubmit}
+                    isSubmitting={femaEstimateLoading}
+                  />
                 </section>
-              ) : null}
-            </div>
-          </div>
-        </section>
 
-        {shouldShowBaseContextCard ? (
-          <section className="rounded-3xl border border-stone-200 bg-white p-6 shadow-sm">
-            <h2 className="text-2xl font-semibold text-stone-900">Recovery Planning Checklist</h2>
-            <p className="mt-3 max-w-3xl text-sm leading-6 text-stone-600">
-              We already know some of this from My Info, so the checklist only asks what is still
-              missing.
-            </p>
+                {femaEstimateResult ? (
+                  <section className="min-w-0 rounded-3xl border border-stone-200 bg-white p-6 shadow-sm lg:flex-[0.85]">
+                    <div className="flex items-start justify-between gap-4 border-b border-stone-100 pb-4">
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
+                          Estimate Result
+                        </p>
+                        <h3 className="mt-2 text-xl font-semibold text-stone-900">
+                          FEMA IHP estimate
+                        </h3>
+                      </div>
+                      <div className="group relative">
+                        <button
+                          type="button"
+                          aria-describedby="fema-estimate-disclaimer"
+                          className="flex h-7 w-7 items-center justify-center rounded-full border border-amber-300 bg-amber-100 text-sm font-bold text-amber-800 shadow-sm transition-colors hover:bg-amber-200 focus:outline-none focus:ring-2 focus:ring-amber-300"
+                        >
+                          !
+                        </button>
+                        <p
+                          id="fema-estimate-disclaimer"
+                          role="tooltip"
+                          className="pointer-events-none absolute right-0 top-9 z-10 w-72 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-950 opacity-0 shadow-lg transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
+                        >
+                          This estimate is based on historical FEMA Individuals and Households
+                          Program records. It is not a guarantee of FEMA eligibility or payment.
+                        </p>
+                      </div>
+                    </div>
 
-            <div className="mt-5 grid gap-3 sm:grid-cols-2">
-              {baseRecoveryAnswers.addressOrZip ? (
-                <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
-                  <p className="text-xs font-medium uppercase tracking-[0.2em] text-stone-500">
-                    ZIP code
-                  </p>
-                  <p className="mt-2 text-sm font-semibold text-stone-900">
-                    {baseRecoveryAnswers.addressOrZip}
-                  </p>
-                </div>
-              ) : null}
-              {baseRecoveryAnswers.ownershipStatus ? (
-                <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
-                  <p className="text-xs font-medium uppercase tracking-[0.2em] text-stone-500">
-                    Housing
-                  </p>
-                  <p className="mt-2 text-sm font-semibold text-stone-900">
-                    {baseRecoveryAnswers.ownershipStatus}
-                  </p>
-                </div>
-              ) : null}
-              {baseRecoveryAnswers.insuranceStatus ? (
-                <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
-                  <p className="text-xs font-medium uppercase tracking-[0.2em] text-stone-500">
-                    Insurance
-                  </p>
-                  <p className="mt-2 text-sm font-semibold text-stone-900">
-                    {baseRecoveryAnswers.insuranceStatus}
-                  </p>
-                </div>
-              ) : null}
-              {baseRecoveryAnswers.hasGovernmentId ? (
-                <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
-                  <p className="text-xs font-medium uppercase tracking-[0.2em] text-stone-500">
-                    ID
-                  </p>
-                  <p className="mt-2 text-sm font-semibold text-stone-900">
-                    {baseRecoveryAnswers.hasGovernmentId}
-                  </p>
-                </div>
-              ) : null}
-            </div>
-
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-              <button
-                type="button"
-                onClick={handleCreateDisasterProfile}
-                className="inline-flex items-center justify-center rounded-full bg-emerald-700 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-emerald-800"
-              >
-                Continue Recovery Planning
-              </button>
-              <Link
-                to="/dashboard"
-                className="inline-flex items-center justify-center rounded-full border border-stone-200 bg-stone-50 px-5 py-3 text-sm font-semibold text-stone-700 transition-colors hover:border-stone-300 hover:bg-stone-100"
-              >
-                Back to Dashboard
-              </Link>
+                    <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                      <div className="rounded-2xl border border-emerald-100 bg-emerald-50/70 p-4">
+                        <p className="text-xs font-medium uppercase tracking-[0.2em] text-emerald-700">
+                          Eligibility rate
+                        </p>
+                        <p className="mt-2 text-lg font-semibold text-stone-950">
+                          {formatRate(femaEstimateResult.eligibilityRate)}
+                        </p>
+                      </div>
+                      <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
+                        <p className="text-xs font-medium uppercase tracking-[0.2em] text-stone-500">
+                          Estimated low
+                        </p>
+                        <p className="mt-2 text-lg font-semibold text-stone-900">
+                          {formatMoney(femaEstimateResult.estimatedLow)}
+                        </p>
+                      </div>
+                      <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
+                        <p className="text-xs font-medium uppercase tracking-[0.2em] text-stone-500">
+                          Estimated median
+                        </p>
+                        <p className="mt-2 text-lg font-semibold text-stone-900">
+                          {formatMoney(femaEstimateResult.estimatedMedian)}
+                        </p>
+                      </div>
+                      <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
+                        <p className="text-xs font-medium uppercase tracking-[0.2em] text-stone-500">
+                          Estimated high
+                        </p>
+                        <p className="mt-2 text-lg font-semibold text-stone-900">
+                          {formatMoney(femaEstimateResult.estimatedHigh)}
+                        </p>
+                      </div>
+                    </div>
+                  </section>
+                ) : null}
+              </div>
             </div>
           </section>
         ) : null}
 
-        {shouldShowSavedProfileCard ? (
-          <section className="rounded-3xl border border-stone-200 bg-white p-6 shadow-sm">
-            <h2 className="text-2xl font-semibold text-stone-900">
-              Disaster profile already created
-            </h2>
-            <p className="mt-3 max-w-3xl text-sm leading-6 text-stone-600">
-              You already created a disaster recovery profile. You can review the matched aid plan
-              or edit your responses.
-            </p>
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-              <button
-                type="button"
-                onClick={handleReviewRecoveryPlan}
-                className="inline-flex items-center justify-center rounded-full bg-emerald-700 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-emerald-800"
-              >
-                Review Recovery Plan
-              </button>
-              <button
-                type="button"
-                onClick={handleEditDisasterProfile}
-                className="inline-flex items-center justify-center rounded-full border border-stone-200 bg-stone-50 px-5 py-3 text-sm font-semibold text-stone-700 transition-colors hover:border-stone-300 hover:bg-stone-100"
-              >
-                Edit Response
-              </button>
-              <button
-                type="button"
-                onClick={handleStartNewDisasterProfile}
-                className="inline-flex items-center justify-center rounded-full border border-stone-200 bg-white px-5 py-3 text-sm font-semibold text-stone-700 transition-colors hover:border-stone-300 hover:bg-stone-50"
-              >
-                Start New Disaster Profile
-              </button>
-            </div>
-          </section>
-        ) : null}
-
-        {shouldShowForm ? (
-          <AidEligibilityForm
-            answers={combinedRecoveryAnswers}
-            onChange={(nextAnswers) => {
-              const nextRecoveryAnswers = stripBaseAnswers(nextAnswers, baseRecoveryAnswers);
-              setRecoveryAnswers(nextRecoveryAnswers);
-            }}
-            onSubmit={handleSubmit}
-            activeTierId={activeRecoveryTierId}
-            onActiveTierChange={setActiveRecoveryTierId}
-            onClose={handleCloseDisasterProfileEditor}
-            hiddenQuestionIds={inheritedQuestionIds}
-          />
-        ) : null}
-
-        {shouldShowRecoveryPlan ? (
-          <>
-            <RecoveryChecklist matchedPrograms={matchedPrograms ?? []} answers={combinedRecoveryAnswers} />
-            <HomePhotoGallery />
-
-            <p className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-900">
-              Aid matches, estimated amounts, and deadlines shown here are mock educational
-              estimates for MVP demonstration. They are not official FEMA, SBA, insurance, state,
-              or local government determinations.
-            </p>
-
-            <DeadlineTracker programs={aidDeadlines} />
-            <AidApplicationStatusList />
-          </>
-        ) : null}
+        {activeSection === "workspace" ? <RecoveryWorkspace /> : null}
       </div>
     </main>
   );

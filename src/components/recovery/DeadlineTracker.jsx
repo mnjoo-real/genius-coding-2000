@@ -1,4 +1,3 @@
-import { useMemo } from "react";
 import { getAidStatusStyle } from "../../utils/getAidStatusStyle";
 
 function getProgramName(program) {
@@ -120,9 +119,8 @@ function DeadlineItem({ item }) {
   );
 }
 
-export default function DeadlineTracker({ programs = [], disasterDate }) {
-  const safePrograms = Array.isArray(programs) ? programs : [];
-  const items = useMemo(() => safePrograms, [safePrograms]);
+export default function DeadlineTracker({ programs = [] }) {
+  const items = Array.isArray(programs) ? programs : [];
 
   return (
     <section className="rounded-3xl border border-stone-200 bg-white p-6 shadow-sm">

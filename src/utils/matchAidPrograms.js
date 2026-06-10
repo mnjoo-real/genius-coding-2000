@@ -29,14 +29,6 @@ function hasAnyValue(values, targets) {
   return source.some((value) => targetSet.has(value));
 }
 
-function addUnique(list, value) {
-  if (!value || list.includes(value)) {
-    return list;
-  }
-
-  return [...list, value];
-}
-
 function normalizeDisasterValue(value) {
   const normalized = normalizeString(value).toLowerCase();
 
