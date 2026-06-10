@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Button from "../components/ui/Button";
 import Input from "../components/ui/Input";
@@ -13,6 +13,37 @@ function saveResolvedLocation(submittedZipCode, regionalRiskProfile) {
 const RISK_LOOKUP_ERROR =
   "We could not find regional risk data for this ZIP code. Please check the ZIP code and try again.";
 
+function safeParseObject(rawValue) {
+  if (!rawValue) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(rawValue);
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      return parsed;
+    }
+  } catch {
+    // Ignore invalid saved regional risk state.
+  }
+
+  return null;
+}
+
+function readSavedZipCode() {
+  const rawValue = localStorage.getItem("selectedZipCode");
+  if (rawValue == null) {
+    return "";
+  }
+
+  try {
+    const parsed = JSON.parse(rawValue);
+    return typeof parsed === "string" ? parsed : rawValue;
+  } catch {
+    return rawValue;
+  }
+}
+
 export default function LocationInput() {
   const navigate = useNavigate();
   const [zipCode, setZipCode] = useState("");
@@ -20,6 +51,21 @@ export default function LocationInput() {
   const [isLookingUp, setIsLookingUp] = useState(false);
   const [resolvedRiskProfile, setResolvedRiskProfile] = useState(null);
   const [statusMessage, setStatusMessage] = useState("");
+  const [savedZipCode, setSavedZipCode] = useState("");
+  const [savedRegionalRisk, setSavedRegionalRisk] = useState(null);
+  const [isEditingSavedProfile, setIsEditingSavedProfile] = useState(false);
+
+  useEffect(() => {
+    const nextSavedZipCode = readSavedZipCode();
+    const nextSavedRegionalRisk = safeParseObject(localStorage.getItem("regionalRisk"));
+
+    setSavedZipCode(nextSavedZipCode);
+    setSavedRegionalRisk(nextSavedRegionalRisk);
+
+    if (nextSavedZipCode) {
+      setZipCode(nextSavedZipCode);
+    }
+  }, []);
 
   function handleZipChange(event) {
     setZipCode(event.target.value);
@@ -71,6 +117,8 @@ export default function LocationInput() {
       }
 
       saveResolvedLocation(normalizedZipCode, regionalRisk);
+      setSavedZipCode(normalizedZipCode);
+      setSavedRegionalRisk(regionalRisk);
       setResolvedRiskProfile(regionalRisk);
       setStatusMessage(
         `Regional profile ready for ${regionalRisk.city}, ${regionalRisk.state}.`
@@ -83,6 +131,77 @@ export default function LocationInput() {
     } finally {
       setIsLookingUp(false);
     }
+  }
+
+  function handleEditResponse() {
+    setIsEditingSavedProfile(true);
+    setZipCode(savedZipCode || "");
+    setResolvedRiskProfile(null);
+    setStatusMessage("");
+    setError("");
+  }
+
+  const hasSavedLocationProfile = Boolean(savedZipCode && savedRegionalRisk);
+
+  if (hasSavedLocationProfile && !isEditingSavedProfile) {
+    return (
+      <main className="min-h-screen bg-parchment px-6 py-12 sm:py-16">
+        <section className="mx-auto max-w-3xl">
+          <div className="rounded-3xl border border-stone-200 bg-white p-6 shadow-sm sm:p-8">
+            <h1 className="text-3xl text-stone-900">Location profile already completed</h1>
+            <p className="mt-3 text-stone-600">
+              You already saved a regional risk profile for this ZIP code.
+            </p>
+
+            <div className="mt-6 grid gap-4 sm:grid-cols-2">
+              <div className="rounded-2xl border border-stone-200 bg-parchment/60 p-4">
+                <p className="text-xs font-medium uppercase tracking-[0.2em] text-stone-500">
+                  ZIP code
+                </p>
+                <p className="mt-2 text-lg font-semibold text-stone-900">{savedZipCode}</p>
+              </div>
+              <div className="rounded-2xl border border-stone-200 bg-parchment/60 p-4">
+                <p className="text-xs font-medium uppercase tracking-[0.2em] text-stone-500">
+                  Location
+                </p>
+                <p className="mt-2 text-lg font-semibold text-stone-900">
+                  {savedRegionalRisk.city && savedRegionalRisk.state
+                    ? `${savedRegionalRisk.city}, ${savedRegionalRisk.state}`
+                    : "Not provided"}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <div className="rounded-2xl border border-stone-200 bg-white p-4">
+                <p className="text-sm font-medium text-stone-700">Flood risk</p>
+                <p className="mt-1 text-stone-900">
+                  {savedRegionalRisk.floodRisk ?? "Not provided"}
+                </p>
+              </div>
+              <div className="rounded-2xl border border-stone-200 bg-white p-4">
+                <p className="text-sm font-medium text-stone-700">Wildfire risk</p>
+                <p className="mt-1 text-stone-900">
+                  {savedRegionalRisk.wildfireRisk ?? "Not provided"}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+              <Button variant="primary" onClick={() => navigate("/user-info")}>
+                View User Info
+              </Button>
+              <Button variant="secondary" onClick={() => navigate("/risk")}>
+                Continue
+              </Button>
+              <Button variant="secondary" onClick={handleEditResponse}>
+                Edit Response
+              </Button>
+            </div>
+          </div>
+        </section>
+      </main>
+    );
   }
 
   return (
