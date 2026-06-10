@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { recoveryDocuments } from "../../data/recoveryDocuments";
 
 const STORAGE_KEY = "recoveryDocumentChecklist";
-const ANSWERS_KEY = "aidEligibilityAnswers";
 
 function safeParseObject(rawValue) {
   if (!rawValue) {
@@ -285,9 +284,8 @@ function DocumentGroup({ title, description, documents, checklist, onToggle }) {
   );
 }
 
-export default function RecoveryChecklist({ matchedPrograms }) {
+export default function RecoveryChecklist({ matchedPrograms, answers = {} }) {
   const [checklist, setChecklist] = useState({});
-  const [answers, setAnswers] = useState({});
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -295,7 +293,6 @@ export default function RecoveryChecklist({ matchedPrograms }) {
     }
 
     setChecklist(safeParseObject(window.localStorage.getItem(STORAGE_KEY)));
-    setAnswers(safeParseObject(window.localStorage.getItem(ANSWERS_KEY)));
   }, []);
 
   useEffect(() => {

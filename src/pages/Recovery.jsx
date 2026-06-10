@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import RecoveryChecklist from "../components/recovery/RecoveryChecklist";
 import HomePhotoGallery from "../components/recovery/HomePhotoGallery";
@@ -8,77 +8,67 @@ import AidApplicationStatusList from "../components/recovery/AidApplicationStatu
 import { recoveryQuestionTiers } from "../data/recoveryQuestions";
 import { calculateAidDeadlines } from "../utils/calculateAidDeadlines";
 import { matchAidPrograms } from "../utils/matchAidPrograms";
+import {
+  buildRecoveryBaseAnswers,
+  clearLegacyRecoveryProfile,
+  clearRecoveryProfile,
+  readPreparednessSnapshot,
+  readRecoveryProfile,
+  saveRecoveryProfile,
+} from "../services/userInfoSyncService";
 
-const DISASTER_PROFILE_KEY = "disasterProfile";
-const LEGACY_AID_ANSWERS_KEY = "aidEligibilityAnswers";
-
-function safeParseAnswers(rawValue) {
-  if (!rawValue) {
-    return null;
+function stripBaseAnswers(answers, baseAnswers) {
+  if (!answers || typeof answers !== "object" || Array.isArray(answers)) {
+    return {};
   }
 
-  try {
-    const parsed = JSON.parse(rawValue);
-    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-      return parsed;
+  const sanitizedAnswers = {};
+  Object.entries(answers).forEach(([key, value]) => {
+    if (!(key in baseAnswers)) {
+      sanitizedAnswers[key] = value;
     }
-  } catch {
-    // Fall through to the safe default.
-  }
+  });
 
-  return null;
-}
-
-function getInitialState() {
-  if (typeof window === "undefined") {
-    return { answers: {}, hasDisasterProfile: false };
-  }
-
-  const disasterProfile = safeParseAnswers(
-    window.localStorage.getItem(DISASTER_PROFILE_KEY)
-  );
-  if (disasterProfile) {
-    return { answers: disasterProfile, hasDisasterProfile: true };
-  }
-
-  const legacyAnswers = safeParseAnswers(
-    window.localStorage.getItem(LEGACY_AID_ANSWERS_KEY)
-  );
-  if (legacyAnswers) {
-    return { answers: legacyAnswers, hasDisasterProfile: true };
-  }
-
-  return { answers: {}, hasDisasterProfile: false };
-}
-
-function persistDisasterProfile(nextAnswers) {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  const serializedAnswers = JSON.stringify(nextAnswers);
-  window.localStorage.setItem(DISASTER_PROFILE_KEY, serializedAnswers);
-  window.localStorage.setItem(LEGACY_AID_ANSWERS_KEY, serializedAnswers);
-}
-
-function clearDisasterProfile() {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  window.localStorage.removeItem(DISASTER_PROFILE_KEY);
-  window.localStorage.removeItem(LEGACY_AID_ANSWERS_KEY);
+  return sanitizedAnswers;
 }
 
 export default function Recovery() {
-  const initialState = getInitialState();
-  const [answers, setAnswers] = useState(initialState.answers);
+  const [preparednessSnapshot] = useState(() => readPreparednessSnapshot());
+  const baseRecoveryAnswers = useMemo(
+    () => buildRecoveryBaseAnswers(preparednessSnapshot),
+    [preparednessSnapshot]
+  );
+  const initialRecoveryAnswers = useMemo(
+    () => stripBaseAnswers(readRecoveryProfile(), baseRecoveryAnswers),
+    [baseRecoveryAnswers]
+  );
+  const [recoveryAnswers, setRecoveryAnswers] = useState(initialRecoveryAnswers);
   const [hasMatched, setHasMatched] = useState(false);
-  const [hasDisasterProfile, setHasDisasterProfile] = useState(initialState.hasDisasterProfile);
   const [isEditingDisasterProfile, setIsEditingDisasterProfile] = useState(false);
   const [activeRecoveryTierId, setActiveRecoveryTierId] = useState(
     recoveryQuestionTiers[0]?.id ?? null
   );
+  const hasBaseRecoveryContext = Object.keys(baseRecoveryAnswers).length > 0;
+  const hasSavedRecoveryAnswers = Object.keys(recoveryAnswers).length > 0;
+  const hasDisasterProfile = hasBaseRecoveryContext || hasSavedRecoveryAnswers;
+  const combinedRecoveryAnswers = useMemo(
+    () => ({ ...baseRecoveryAnswers, ...recoveryAnswers }),
+    [baseRecoveryAnswers, recoveryAnswers]
+  );
+  const inheritedQuestionIds = useMemo(
+    () => Object.keys(baseRecoveryAnswers),
+    [baseRecoveryAnswers]
+  );
+
+  useEffect(() => {
+    if (Object.keys(recoveryAnswers).length === 0) {
+      clearRecoveryProfile();
+      return;
+    }
+
+    saveRecoveryProfile(recoveryAnswers);
+    clearLegacyRecoveryProfile();
+  }, [recoveryAnswers]);
 
   const matchedPrograms = useMemo(() => {
     if (!hasMatched || !hasDisasterProfile) {
@@ -86,11 +76,11 @@ export default function Recovery() {
     }
 
     try {
-      return matchAidPrograms(answers);
+      return matchAidPrograms(combinedRecoveryAnswers);
     } catch {
       return [];
     }
-  }, [answers, hasMatched, hasDisasterProfile]);
+  }, [combinedRecoveryAnswers, hasMatched, hasDisasterProfile]);
 
   const aidDeadlines = useMemo(() => {
     if (!hasMatched || !hasDisasterProfile || matchedPrograms.length === 0) {
@@ -98,26 +88,31 @@ export default function Recovery() {
     }
 
     try {
-      return calculateAidDeadlines(matchedPrograms, answers);
+      return calculateAidDeadlines(matchedPrograms, combinedRecoveryAnswers);
     } catch {
       return [];
     }
-  }, [matchedPrograms, answers, hasMatched, hasDisasterProfile]);
+  }, [matchedPrograms, combinedRecoveryAnswers, hasMatched, hasDisasterProfile]);
 
   const handleSubmit = (nextAnswers) => {
     if (nextAnswers && typeof nextAnswers === "object" && !Array.isArray(nextAnswers)) {
-      setAnswers(nextAnswers);
-      persistDisasterProfile(nextAnswers);
+      const nextRecoveryAnswers = stripBaseAnswers(nextAnswers, baseRecoveryAnswers);
+      setRecoveryAnswers(nextRecoveryAnswers);
+      if (Object.keys(nextRecoveryAnswers).length === 0) {
+        clearRecoveryProfile();
+      } else {
+        saveRecoveryProfile(nextRecoveryAnswers);
+      }
+      clearLegacyRecoveryProfile();
     }
 
-    setHasDisasterProfile(true);
     setHasMatched(true);
     setIsEditingDisasterProfile(false);
     setActiveRecoveryTierId(null);
   };
 
   const handleCreateDisasterProfile = () => {
-    setAnswers({});
+    setRecoveryAnswers({});
     setHasMatched(false);
     setIsEditingDisasterProfile(true);
     setActiveRecoveryTierId(recoveryQuestionTiers[0]?.id ?? null);
@@ -149,16 +144,18 @@ export default function Recovery() {
       return;
     }
 
-    clearDisasterProfile();
-    setAnswers({});
+    clearRecoveryProfile();
+    setRecoveryAnswers({});
     setHasMatched(false);
-    setHasDisasterProfile(false);
     setIsEditingDisasterProfile(false);
     setActiveRecoveryTierId(null);
   };
 
   const shouldShowIntroCard = !hasDisasterProfile && !isEditingDisasterProfile;
-  const shouldShowSavedProfileCard = hasDisasterProfile && !isEditingDisasterProfile && !hasMatched;
+  const shouldShowBaseContextCard =
+    hasBaseRecoveryContext && !hasSavedRecoveryAnswers && !isEditingDisasterProfile && !hasMatched;
+  const shouldShowSavedProfileCard =
+    hasSavedRecoveryAnswers && !isEditingDisasterProfile && !hasMatched;
   const shouldShowForm = isEditingDisasterProfile;
   const shouldShowRecoveryPlan = hasDisasterProfile && hasMatched;
 
@@ -214,6 +211,75 @@ export default function Recovery() {
           </section>
         ) : null}
 
+        {shouldShowBaseContextCard ? (
+          <section className="rounded-3xl border border-stone-200 bg-white p-6 shadow-sm">
+            <h2 className="text-2xl font-semibold text-stone-900">Aid Eligibility Check</h2>
+            <p className="mt-3 max-w-3xl text-sm leading-6 text-stone-600">
+              We already know some of this from My Info, so the checklist only asks what is still
+              missing.
+            </p>
+
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+              {baseRecoveryAnswers.addressOrZip ? (
+                <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
+                  <p className="text-xs font-medium uppercase tracking-[0.2em] text-stone-500">
+                    ZIP code
+                  </p>
+                  <p className="mt-2 text-sm font-semibold text-stone-900">
+                    {baseRecoveryAnswers.addressOrZip}
+                  </p>
+                </div>
+              ) : null}
+              {baseRecoveryAnswers.ownershipStatus ? (
+                <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
+                  <p className="text-xs font-medium uppercase tracking-[0.2em] text-stone-500">
+                    Housing
+                  </p>
+                  <p className="mt-2 text-sm font-semibold text-stone-900">
+                    {baseRecoveryAnswers.ownershipStatus}
+                  </p>
+                </div>
+              ) : null}
+              {baseRecoveryAnswers.insuranceStatus ? (
+                <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
+                  <p className="text-xs font-medium uppercase tracking-[0.2em] text-stone-500">
+                    Insurance
+                  </p>
+                  <p className="mt-2 text-sm font-semibold text-stone-900">
+                    {baseRecoveryAnswers.insuranceStatus}
+                  </p>
+                </div>
+              ) : null}
+              {baseRecoveryAnswers.hasGovernmentId ? (
+                <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
+                  <p className="text-xs font-medium uppercase tracking-[0.2em] text-stone-500">
+                    ID
+                  </p>
+                  <p className="mt-2 text-sm font-semibold text-stone-900">
+                    {baseRecoveryAnswers.hasGovernmentId}
+                  </p>
+                </div>
+              ) : null}
+            </div>
+
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+              <button
+                type="button"
+                onClick={handleCreateDisasterProfile}
+                className="inline-flex items-center justify-center rounded-full bg-emerald-700 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-emerald-800"
+              >
+                Continue Aid Eligibility Check
+              </button>
+              <Link
+                to="/dashboard"
+                className="inline-flex items-center justify-center rounded-full border border-stone-200 bg-stone-50 px-5 py-3 text-sm font-semibold text-stone-700 transition-colors hover:border-stone-300 hover:bg-stone-100"
+              >
+                Back to Dashboard
+              </Link>
+            </div>
+          </section>
+        ) : null}
+
         {shouldShowSavedProfileCard ? (
           <section className="rounded-3xl border border-stone-200 bg-white p-6 shadow-sm">
             <h2 className="text-2xl font-semibold text-stone-900">
@@ -251,18 +317,22 @@ export default function Recovery() {
 
         {shouldShowForm ? (
           <AidEligibilityForm
-            answers={answers}
-            onChange={setAnswers}
+            answers={combinedRecoveryAnswers}
+            onChange={(nextAnswers) => {
+              const nextRecoveryAnswers = stripBaseAnswers(nextAnswers, baseRecoveryAnswers);
+              setRecoveryAnswers(nextRecoveryAnswers);
+            }}
             onSubmit={handleSubmit}
             activeTierId={activeRecoveryTierId}
             onActiveTierChange={setActiveRecoveryTierId}
             onClose={handleCloseDisasterProfileEditor}
+            hiddenQuestionIds={inheritedQuestionIds}
           />
         ) : null}
 
         {shouldShowRecoveryPlan ? (
           <>
-            <RecoveryChecklist matchedPrograms={matchedPrograms ?? []} />
+            <RecoveryChecklist matchedPrograms={matchedPrograms ?? []} answers={combinedRecoveryAnswers} />
             <HomePhotoGallery />
 
             <p className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-900">

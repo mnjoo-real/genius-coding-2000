@@ -2,10 +2,13 @@ import { getLocalAuthSession } from "./localAuthService";
 
 const PROFILE_ID_STORAGE_KEY = "profile_id";
 const PROFILE_STORAGE_PREFIX = "canopyProfile";
+const RECOVERY_PROFILE_STORAGE_KEY = "recoveryProfile";
+const LEGACY_RECOVERY_PROFILE_KEYS = ["disasterProfile", "aidEligibilityAnswers"];
 const PROFILE_DATA_KEYS = {
   selectedZipCode: "selectedZipCode",
   regionalRisk: "regionalRisk",
   homeProfile: "homeProfile",
+  recoveryProfile: RECOVERY_PROFILE_STORAGE_KEY,
 };
 
 function safeParseJson(rawValue) {
@@ -70,6 +73,21 @@ function writeStorageValue(key, value) {
   }
 
   window.localStorage.setItem(storageKey, JSON.stringify(value));
+}
+
+function readLegacyRecoveryProfile() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  for (const key of LEGACY_RECOVERY_PROFILE_KEYS) {
+    const parsedValue = safeParseJson(window.localStorage.getItem(key));
+    if (parsedValue && typeof parsedValue === "object" && !Array.isArray(parsedValue)) {
+      return parsedValue;
+    }
+  }
+
+  return null;
 }
 
 function createLocalProfileId() {
@@ -166,8 +184,85 @@ export function saveHomeProfile(homeProfile) {
   writeStorageValue(PROFILE_DATA_KEYS.homeProfile, homeProfile);
 }
 
+export function readRecoveryProfile() {
+  const recoveryProfile = readStorageValue(PROFILE_DATA_KEYS.recoveryProfile);
+  if (recoveryProfile && typeof recoveryProfile === "object" && !Array.isArray(recoveryProfile)) {
+    return recoveryProfile;
+  }
+
+  return readLegacyRecoveryProfile() || {};
+}
+
+export function saveRecoveryProfile(recoveryProfile) {
+  writeStorageValue(PROFILE_DATA_KEYS.recoveryProfile, recoveryProfile);
+}
+
+export function clearLegacyRecoveryProfile() {
+  if (!canUseLocalStorage()) {
+    return;
+  }
+
+  LEGACY_RECOVERY_PROFILE_KEYS.forEach((key) => {
+    window.localStorage.removeItem(key);
+  });
+}
+
 export function clearPreparednessProfile() {
   writeStorageValue(PROFILE_DATA_KEYS.selectedZipCode, null);
   writeStorageValue(PROFILE_DATA_KEYS.regionalRisk, null);
   writeStorageValue(PROFILE_DATA_KEYS.homeProfile, null);
+}
+
+export function clearRecoveryProfile() {
+  writeStorageValue(PROFILE_DATA_KEYS.recoveryProfile, null);
+  clearLegacyRecoveryProfile();
+}
+
+export function buildRecoveryBaseAnswers(preparednessSnapshot = {}) {
+  const selectedZipCode =
+    typeof preparednessSnapshot.selectedZipCode === "string"
+      ? preparednessSnapshot.selectedZipCode.trim()
+      : "";
+  const homeProfile =
+    preparednessSnapshot.homeProfile &&
+    typeof preparednessSnapshot.homeProfile === "object" &&
+    !Array.isArray(preparednessSnapshot.homeProfile)
+      ? preparednessSnapshot.homeProfile
+      : {};
+
+  const baseAnswers = {};
+
+  if (selectedZipCode) {
+    baseAnswers.addressOrZip = selectedZipCode;
+  }
+
+  const ownershipStatus = typeof homeProfile.ownershipStatus === "string" ? homeProfile.ownershipStatus : "";
+  if (ownershipStatus === "Own") {
+    baseAnswers.ownershipStatus = "Owner";
+  } else if (ownershipStatus === "Rent") {
+    baseAnswers.ownershipStatus = "Renter";
+  } else if (ownershipStatus) {
+    baseAnswers.ownershipStatus = "Other";
+  }
+
+  const insurancePolicy = typeof homeProfile.insurancePolicy === "string" ? homeProfile.insurancePolicy.toLowerCase() : "";
+  if (insurancePolicy.includes("homeowner") || insurancePolicy.includes("renter")) {
+    baseAnswers.insuranceStatus = "Insured";
+  } else if (insurancePolicy === "no") {
+    baseAnswers.insuranceStatus = "Uninsured";
+  } else if (insurancePolicy.includes("unsure") || insurancePolicy.includes("not sure")) {
+    baseAnswers.insuranceStatus = "Not sure";
+  }
+
+  const digitalDocuments = Array.isArray(homeProfile.digitalDocuments)
+    ? homeProfile.digitalDocuments
+    : [];
+  const hasGovernmentId = digitalDocuments.some(
+    (document) => typeof document === "string" && document.trim() === "Government-issued ID",
+  );
+  if (hasGovernmentId) {
+    baseAnswers.hasGovernmentId = "Yes";
+  }
+
+  return baseAnswers;
 }

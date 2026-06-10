@@ -53,27 +53,46 @@ export default function AidEligibilityForm({
   activeTierId,
   onActiveTierChange,
   onClose,
+  hiddenQuestionIds = [],
 }) {
   const currentAnswers = normalizeAnswers(answers);
   const recoveryNeeds = normalizeMultiValue(currentAnswers.recoveryNeeds);
   const questionMap = getQuestionMap();
   const updateAnswers = onChange ?? setAnswers;
+  const hiddenQuestionSet = new Set(
+    Array.isArray(hiddenQuestionIds)
+      ? hiddenQuestionIds.filter((questionId) => typeof questionId === "string" && questionId)
+      : []
+  );
   const tiers = Array.isArray(recoveryQuestionTiers) ? recoveryQuestionTiers : [];
+  const visibleTiers = tiers
+    .map((tier) => {
+      const tierQuestions =
+        Array.isArray(tier.questionIds) && tier.questionIds.length > 0
+          ? tier.questionIds
+              .map((questionId) => questionMap.get(questionId))
+              .filter((question) => question && !hiddenQuestionSet.has(question.id))
+          : recoveryQuestions.filter(
+              (question) => question.tier === tier.id && !hiddenQuestionSet.has(question.id),
+            );
+
+      return tierQuestions.length > 0
+        ? {
+            ...tier,
+            questions: tierQuestions,
+          }
+        : null;
+    })
+    .filter(Boolean);
+
   const resolvedActiveTierId =
-    tiers.some((tier) => tier.id === activeTierId) ? activeTierId : tiers[0]?.id ?? "";
+    visibleTiers.some((tier) => tier.id === activeTierId) ? activeTierId : visibleTiers[0]?.id ?? "";
   const activeTierIndex = Math.max(
     0,
-    tiers.findIndex((tier) => tier.id === resolvedActiveTierId)
+    visibleTiers.findIndex((tier) => tier.id === resolvedActiveTierId)
   );
-  const activeTier = tiers[activeTierIndex] ?? tiers[0] ?? null;
-
-  const activeTierQuestions = activeTier
-    ? (Array.isArray(activeTier.questionIds) && activeTier.questionIds.length > 0
-        ? activeTier.questionIds
-            .map((questionId) => questionMap.get(questionId))
-            .filter(Boolean)
-        : recoveryQuestions.filter((question) => question.tier === activeTier.id))
-    : [];
+  const activeTier = visibleTiers[activeTierIndex] ?? visibleTiers[0] ?? null;
+  const activeTierQuestions = activeTier?.questions ?? [];
 
   const handleFieldChange = (field, value) => {
     const nextAnswers = buildNextAnswers(currentAnswers, { [field]: value });
@@ -210,7 +229,7 @@ export default function AidEligibilityForm({
             Sections
           </p>
           <div className="mt-3 grid gap-2">
-            {tiers.map((tier, index) => {
+            {visibleTiers.map((tier, index) => {
               const isActive = tier.id === resolvedActiveTierId;
 
               return (
@@ -253,7 +272,7 @@ export default function AidEligibilityForm({
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">
-                    Step {activeTierIndex + 1} of {tiers.length}
+                    Step {activeTierIndex + 1} of {visibleTiers.length}
                   </p>
                   <h3 className="mt-2 text-xl font-semibold text-stone-900">{activeTier.title}</h3>
                   {activeTier.description ? (
@@ -267,7 +286,7 @@ export default function AidEligibilityForm({
                   <button
                     type="button"
                     onClick={() => {
-                      const previousTier = tiers[activeTierIndex - 1];
+                      const previousTier = visibleTiers[activeTierIndex - 1];
                       if (previousTier) {
                         onActiveTierChange?.(previousTier.id);
                       }
@@ -280,12 +299,12 @@ export default function AidEligibilityForm({
                   <button
                     type="button"
                     onClick={() => {
-                      const nextTier = tiers[activeTierIndex + 1];
+                      const nextTier = visibleTiers[activeTierIndex + 1];
                       if (nextTier) {
                         onActiveTierChange?.(nextTier.id);
                       }
                     }}
-                    disabled={activeTierIndex >= tiers.length - 1}
+                    disabled={activeTierIndex >= visibleTiers.length - 1}
                     className="inline-flex items-center justify-center rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-800 transition-colors hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     Next
