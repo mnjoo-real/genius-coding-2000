@@ -473,7 +473,7 @@ export default function Landing() {
                 height={globeDims.height}
                 globeImageUrl="https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg"
                 backgroundColor="rgba(0,0,0,0)"
-                atmosphereColor="rgba(100,180,255,0.45)"
+                atmosphereColor="rgb(100,180,255)"
                 atmosphereAltitude={0.28}
                 autoRotate
                 autoRotateSpeed={0.35}

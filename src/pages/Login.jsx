@@ -31,6 +31,7 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [status, setStatus] = useState({ type: "idle", message: "" });
   const isSubmitting = status.type === "loading";
+  const isRateLimited = status.type === "error" && /rate limit/i.test(status.message);
 
   async function linkAuthProfile(data) {
     const authUserId = data?.user?.id ?? data?.session?.user?.id;
@@ -73,7 +74,13 @@ export default function Login() {
     });
 
     if (error) {
-      setStatus({ type: "error", message: error.message });
+      setStatus({
+        type: "error",
+        message:
+          error.status === 429
+            ? "Supabase Auth rate limit reached. Wait a moment before trying again."
+            : error.message,
+      });
       return;
     }
 
@@ -120,7 +127,13 @@ export default function Login() {
     });
 
     if (error) {
-      setStatus({ type: "error", message: error.message });
+      setStatus({
+        type: "error",
+        message:
+          error.status === 429
+            ? "Supabase Auth rate limit reached. Wait a moment before trying again."
+            : error.message,
+      });
       return;
     }
 
@@ -192,7 +205,7 @@ export default function Login() {
                     <button
                       type="button"
                       onClick={() => navigate("/")}
-                      disabled={isSubmitting}
+                      disabled={isSubmitting || isRateLimited}
                       className="inline-flex w-full items-center justify-center rounded-full bg-forest px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-emerald-900"
                     >
                       Go to Home
@@ -201,7 +214,7 @@ export default function Login() {
                     <button
                       type="button"
                       onClick={handleLogout}
-                      disabled={isSubmitting}
+                      disabled={isSubmitting || isRateLimited}
                       className="inline-flex w-full items-center justify-center rounded-full border border-stone-200 bg-white px-5 py-3 text-sm font-semibold text-stone-800 transition-colors hover:border-stone-300 hover:bg-stone-50"
                     >
                       Logout
@@ -257,7 +270,7 @@ export default function Login() {
                       <button
                         type="button"
                         onClick={handleSignIn}
-                        disabled={isSubmitting}
+                        disabled={isSubmitting || isRateLimited}
                         className="inline-flex items-center justify-center rounded-full bg-forest px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-emerald-900"
                       >
                         Sign In
@@ -266,7 +279,7 @@ export default function Login() {
                       <button
                         type="button"
                         onClick={handleCreateAccount}
-                        disabled={isSubmitting}
+                        disabled={isSubmitting || isRateLimited}
                         className="inline-flex items-center justify-center rounded-full border border-stone-200 bg-white px-5 py-3 text-sm font-semibold text-stone-800 transition-colors hover:border-stone-300 hover:bg-stone-50"
                       >
                         Create Account
@@ -275,7 +288,7 @@ export default function Login() {
                       <button
                         type="button"
                         onClick={handleContinueAsGuest}
-                        disabled={isSubmitting}
+                        disabled={isSubmitting || isRateLimited}
                         className="inline-flex items-center justify-center rounded-full border border-dashed border-stone-300 bg-transparent px-5 py-3 text-sm font-semibold text-stone-700 transition-colors hover:border-stone-400 hover:bg-stone-50"
                       >
                         Continue as Guest
