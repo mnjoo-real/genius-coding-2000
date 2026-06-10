@@ -1,5 +1,17 @@
 import { ecoSolutions } from "../data/ecoSolutions";
 
+const MAX_PER_CATEGORY = 25;
+const CONTROLLABLE_CATEGORY_KEYS = [
+  "homeVulnerability",
+  "ecoMitigation",
+  "recoveryPreparedness",
+];
+const PRIORITY_ORDER = {
+  now: 0,
+  soon: 1,
+  later: 2,
+};
+
 function includesAnswer(value, target) {
   if (Array.isArray(value)) {
     return value.includes(target);
@@ -20,6 +32,80 @@ function findSolutionById(id) {
   return ecoSolutions.find((solution) => solution.id === id);
 }
 
+function clampScore(value, min = 0, max = MAX_PER_CATEGORY) {
+  const score = Number(value) || 0;
+  return Math.max(min, Math.min(max, score));
+}
+
+function normalizeCategoryScores(scoreInput = {}) {
+  const categoryScores = scoreInput.categoryScores || scoreInput;
+
+  return {
+    locationRiskScore: clampScore(categoryScores.locationRiskScore),
+    homeVulnerabilityScore: clampScore(categoryScores.homeVulnerabilityScore),
+    ecoMitigationScore: clampScore(categoryScores.ecoMitigationScore),
+    recoveryPreparednessScore: clampScore(
+      categoryScores.recoveryPreparednessScore
+    ),
+  };
+}
+
+function getCategoryGaps(scoreInput) {
+  const categoryScores = normalizeCategoryScores(scoreInput);
+
+  return {
+    homeVulnerability:
+      MAX_PER_CATEGORY - categoryScores.homeVulnerabilityScore,
+    ecoMitigation: MAX_PER_CATEGORY - categoryScores.ecoMitigationScore,
+    recoveryPreparedness:
+      MAX_PER_CATEGORY - categoryScores.recoveryPreparednessScore,
+  };
+}
+
+function getPriorityRank(priority) {
+  return PRIORITY_ORDER[priority] ?? PRIORITY_ORDER.later;
+}
+
+function getClampedRecommendation(action, categoryGaps) {
+  if (action.affects) {
+    const clampedAffects = CONTROLLABLE_CATEGORY_KEYS.reduce((result, key) => {
+      const rawGain = Number(action.affects[key]) || 0;
+      const clampedGain = Math.min(rawGain, categoryGaps[key]);
+
+      if (clampedGain > 0) {
+        result[key] = clampedGain;
+      }
+
+      return result;
+    }, {});
+
+    const pointsGain = Object.values(clampedAffects).reduce(
+      (sum, value) => sum + value,
+      0
+    );
+
+    return {
+      ...action,
+      affects: clampedAffects,
+      pointsGain,
+    };
+  }
+
+  // scoreIncrease is a legacy fallback and should be replaced by affects in ecoSolutions.
+  // Clamp it to controllable category room so it never implies location risk can improve.
+  const controllableGap = Object.values(categoryGaps).reduce(
+    (sum, value) => sum + value,
+    0
+  );
+  const pointsGain = Math.min(Number(action.scoreIncrease) || 0, controllableGap);
+
+  return {
+    ...action,
+    affects: {},
+    pointsGain,
+  };
+}
+
 function addRecommendation(recommendations, id) {
   const solution = findSolutionById(id);
 
@@ -34,10 +120,11 @@ function addRecommendation(recommendations, id) {
   }
 }
 
-export function generateRecommendations(regionalRisk, homeProfile) {
+export function generateRecommendations(regionalRisk, homeProfile, scoreInput) {
   if (!regionalRisk || !homeProfile) return [];
 
   const recommendations = [];
+  const categoryGaps = getCategoryGaps(scoreInput);
 
   const floodRisk = Number(regionalRisk.floodRisk) || 0;
   const wildfireRisk = Number(regionalRisk.wildfireRisk) || 0;
@@ -233,5 +320,17 @@ export function generateRecommendations(regionalRisk, homeProfile) {
     addRecommendation(recommendations, "insuranceReview");
   }
 
-  return recommendations.slice(0, 8);
+  return recommendations
+    .map((recommendation) =>
+      getClampedRecommendation(recommendation, categoryGaps)
+    )
+    .filter((recommendation) => recommendation.pointsGain > 0)
+    .sort((a, b) => {
+      const priorityDiff = getPriorityRank(a.priority) - getPriorityRank(b.priority);
+
+      if (priorityDiff !== 0) return priorityDiff;
+
+      return b.pointsGain - a.pointsGain;
+    })
+    .slice(0, 8);
 }
