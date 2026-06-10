@@ -5,6 +5,7 @@ import HomePhotoGallery from "../components/recovery/HomePhotoGallery";
 import AidEligibilityForm from "../components/recovery/AidEligibilityForm";
 import DeadlineTracker from "../components/recovery/DeadlineTracker";
 import AidApplicationStatusList from "../components/recovery/AidApplicationStatusList";
+import { calculateAidDeadlines } from "../utils/calculateAidDeadlines";
 import { matchAidPrograms } from "../utils/matchAidPrograms";
 
 const STORAGE_KEY = "aidEligibilityAnswers";
@@ -54,8 +55,23 @@ export default function Recovery() {
     return matchAidPrograms(answers);
   }, [answers, hasMatched]);
 
-  const handleSubmit = (event) => {
-    event.preventDefault();
+  const aidDeadlines = useMemo(() => {
+    if (!hasMatched || matchedPrograms.length === 0) {
+      return [];
+    }
+
+    try {
+      return calculateAidDeadlines(matchedPrograms, answers);
+    } catch {
+      return [];
+    }
+  }, [matchedPrograms, answers, hasMatched]);
+
+  const handleSubmit = (nextAnswers) => {
+    if (nextAnswers && typeof nextAnswers === "object" && !Array.isArray(nextAnswers)) {
+      setAnswers(nextAnswers);
+    }
+
     setHasMatched(true);
   };
 
@@ -99,7 +115,7 @@ export default function Recovery() {
           government determinations.
         </p>
 
-        <DeadlineTracker programs={matchedPrograms} disasterDate={answers.disasterDate} />
+        <DeadlineTracker programs={aidDeadlines} />
         <AidApplicationStatusList />
       </div>
     </main>
