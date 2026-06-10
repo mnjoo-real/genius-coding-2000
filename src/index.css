@@ -1,11 +1,11 @@
 @import "tailwindcss";
 
 @theme {
-  --color-parchment: #f7f3ea;
+  --color-parchment: #f2f6ec;
   --color-leaf: #6d8f4a;
   --color-forest: #2f5d40;
   --color-sage: #a8b89a;
-  --color-moss: #dfe7c8;
+  --color-moss: #dceac8;
   --font-sans: "Nunito Sans", sans-serif;
   --font-display: "Nunito Sans", sans-serif;
 }
@@ -24,7 +24,7 @@
 
   html {
     min-height: 100%;
-    background: #f7f3ea;
+    background: #f2f6ec;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     scroll-behavior: smooth;
@@ -33,7 +33,7 @@
   body {
     margin: 0;
     min-height: 100vh;
-    background: #f7f3ea;
+    background: #f2f6ec;
     @apply bg-parchment text-stone-900 font-sans;
     font-size: 1rem;
     line-height: 1.6;
@@ -41,7 +41,7 @@
 
   #root {
     min-height: 100vh;
-    background: #f7f3ea;
+    background: #f2f6ec;
   }
 
   *, *::before, *::after {

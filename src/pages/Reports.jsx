@@ -608,16 +608,37 @@ function ReportsContent() {
   };
 
   const handleDownloadPdf = () => {
-    const printWindow = window.open("", "_blank");
+    const iframe = document.createElement("iframe");
+    iframe.setAttribute("aria-hidden", "true");
+    iframe.style.position = "fixed";
+    iframe.style.width = "0";
+    iframe.style.height = "0";
+    iframe.style.border = "0";
+    iframe.style.right = "0";
+    iframe.style.bottom = "0";
+    iframe.style.pointerEvents = "none";
 
-    if (!printWindow) {
-      window.print();
-      return;
-    }
+    const cleanup = () => {
+      window.setTimeout(() => {
+        iframe.remove();
+      }, 250);
+    };
 
-    printWindow.document.open();
-    printWindow.document.write(buildPrintableReport(selectedReport, reportData));
-    printWindow.document.close();
+    iframe.onload = () => {
+      const frameWindow = iframe.contentWindow;
+      if (!frameWindow) {
+        cleanup();
+        return;
+      }
+
+      frameWindow.focus();
+      frameWindow.addEventListener("afterprint", cleanup, { once: true });
+      frameWindow.print();
+      window.setTimeout(cleanup, 1000);
+    };
+
+    iframe.srcdoc = buildPrintableReport(selectedReport, reportData);
+    document.body.appendChild(iframe);
   };
 
   return (

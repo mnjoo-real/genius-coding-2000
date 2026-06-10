@@ -29,12 +29,15 @@ function NavLink({ label, to, active, onClick }) {
   );
 }
 
-function NavButton({ label, onClick }) {
+function NavButton({ label, onClick, className = '' }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="no-underline text-sm transition-fast text-stone-500 hover:text-forest"
+      className={[
+        'no-underline text-sm transition-fast',
+        className,
+      ].join(' ')}
     >
       {label}
     </button>
@@ -46,13 +49,12 @@ export default function Navbar() {
   const { pathname } = useLocation();
   const [open, setOpen] = useState(false);
   const { isAuthenticated, isLoading } = useAuth();
-  const isDashboard = pathname === '/dashboard';
 
   const isActive = (to) => pathname === to;
 
   const navLinks = [
     ...baseNavLinks,
-    isDashboard ? { label: 'RESET', action: 'reset' } : null,
+    { label: 'Reset', action: 'reset' },
     isAuthenticated
       ? { label: 'Logout', action: 'logout' }
       : { label: 'Login', to: '/login' },
@@ -88,6 +90,11 @@ export default function Navbar() {
               {'action' in link ? (
                 <NavButton
                   label={link.label}
+                  className={
+                    link.action === 'reset'
+                      ? 'rounded-full border border-[#6B1F3A] bg-[#6B1F3A] px-3 py-1 text-white hover:bg-[#58182F] hover:border-[#58182F]'
+                      : 'text-stone-500 hover:text-forest'
+                  }
                   onClick={link.action === 'reset' ? handleReset : handleLogout}
                 />
               ) : (
@@ -124,6 +131,11 @@ export default function Navbar() {
               {'action' in link ? (
                 <NavButton
                   label={link.label}
+                  className={
+                    link.action === 'reset'
+                      ? 'rounded-full border border-[#6B1F3A] bg-[#6B1F3A] px-3 py-2 text-white hover:bg-[#58182F] hover:border-[#58182F]'
+                      : 'text-stone-500 hover:text-forest'
+                  }
                   onClick={link.action === 'reset' ? handleReset : handleLogout}
                 />
               ) : (

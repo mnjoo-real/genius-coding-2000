@@ -56,7 +56,7 @@ export default function RiskOverview() {
             <div className="mt-6">
               <Link
                 to="/location"
-                className="inline-flex items-center justify-center rounded-lg border border-leaf bg-transparent px-6 py-3 font-medium text-leaf transition-fast hover:bg-moss"
+                className="inline-flex items-center justify-center rounded-lg border border-leaf bg-transparent px-6 py-3 font-medium text-leaf no-underline transition-fast hover:bg-moss"
               >
                 Go to Location Input
               </Link>
@@ -115,7 +115,7 @@ export default function RiskOverview() {
               </div>
               <Link
                 to="/questionnaire"
-                className="mt-4 inline-flex w-full shrink-0 items-center justify-center rounded-lg border border-transparent bg-leaf px-6 py-3 font-medium text-white transition-fast hover:bg-forest sm:mt-0 sm:w-auto"
+                className="mt-4 inline-flex w-full shrink-0 items-center justify-center rounded-lg border border-transparent bg-leaf px-6 py-3 font-medium text-white no-underline transition-fast hover:bg-forest sm:mt-0 sm:w-auto"
               >
                 Continue to Home Check
               </Link>

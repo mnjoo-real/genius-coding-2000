@@ -309,7 +309,7 @@ function RecoveryContent() {
 
             <Link
               to="/dashboard"
-              className="inline-flex items-center justify-center rounded-full border border-stone-200 bg-stone-50 px-4 py-2 text-sm font-semibold text-stone-700 transition-colors hover:border-stone-300 hover:bg-stone-100"
+              className="inline-flex items-center justify-center rounded-full border border-stone-200 bg-stone-50 px-4 py-2 text-sm font-semibold text-stone-700 no-underline transition-colors hover:border-stone-300 hover:bg-stone-100"
             >
               Back to Dashboard
             </Link>

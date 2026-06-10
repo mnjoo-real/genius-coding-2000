@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useId, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import ScoreGauge from '../components/score/ScoreGauge';
 import WeaknessList from '../components/score/WeaknessList';
@@ -20,10 +20,32 @@ function getScoreLabel(score) {
   return              { text: 'High Risk',     className: 'text-red-500'   };
 }
 
+function InfoTooltip({ label, description }) {
+  return (
+    <div className="group relative inline-flex">
+      <button
+        type="button"
+        aria-describedby={`${label}-tooltip`}
+        className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-stone-300 bg-white text-[11px] font-semibold text-stone-500 transition-colors hover:border-emerald-300 hover:text-emerald-700 focus-visible:border-emerald-400 focus-visible:text-emerald-700"
+      >
+        ?
+      </button>
+      <div
+        id={`${label}-tooltip`}
+        role="tooltip"
+        className="pointer-events-none absolute left-1/2 top-full z-20 mt-2 w-72 -translate-x-1/2 rounded-2xl bg-stone-900 px-3 py-2 text-xs leading-5 text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
+      >
+        {description}
+      </div>
+    </div>
+  );
+}
+
 export default function ScoreDashboard() {
   const [doneActionIds,   setDoneActionIds]   = useState([]);
   const [homeProfile] = useState(() => readHomeProfile());
   const [regionalRisk] = useState(() => readRegionalRisk());
+  const recommendationsTooltipId = useId();
 
   const scoreData = useMemo(() => {
     if (!homeProfile || !regionalRisk) return null;
@@ -73,7 +95,7 @@ export default function ScoreDashboard() {
           </p>
           <Link
             to="/location"
-            className="mt-6 inline-flex items-center justify-center rounded-md bg-leaf px-4 py-2 text-base font-medium text-white transition-colors hover:bg-forest"
+            className="mt-6 inline-flex items-center justify-center rounded-md bg-leaf px-4 py-2 text-base font-medium text-white no-underline transition-colors hover:bg-forest"
           >
             Go to Location Setup
           </Link>
@@ -159,9 +181,15 @@ export default function ScoreDashboard() {
 
               {/* ── RIGHT COLUMN: recommendation cards ──────────────── */}
               <div className="lg:col-span-3 flex flex-col gap-4">
-                <p className="text-xs font-medium uppercase tracking-widest text-stone-400">
-                  Recommended Actions
-                </p>
+                <div className="flex items-center gap-2">
+                  <p className="text-xs font-medium uppercase tracking-widest text-stone-400">
+                    Recommended Actions
+                  </p>
+                  <InfoTooltip
+                    label={recommendationsTooltipId}
+                    description="These actions are ranked from your score gaps, home vulnerabilities, and the biggest score gains available first."
+                  />
+                </div>
 
                 {recommendations.length === 0 ? (
                   <p className="text-sm text-stone-400">No recommendations available.</p>
@@ -183,7 +211,7 @@ export default function ScoreDashboard() {
 
                 <Link
                   to="/recovery"
-                  className="mt-6 inline-flex w-fit self-end items-center justify-center rounded-full bg-emerald-700 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-emerald-800"
+                  className="mt-6 inline-flex w-fit self-end items-center justify-center rounded-full bg-emerald-700 px-5 py-3 text-sm font-semibold text-white no-underline transition-colors hover:bg-emerald-800"
                 >
                   Open Recovery Center
                 </Link>
