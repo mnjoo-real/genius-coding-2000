@@ -1,9 +1,3 @@
-import {
-  calculateAidDeadline,
-  getDaysUntilDeadline,
-} from "../../utils/calculateAidDeadlines";
-import { getAidStatusStyle } from "../../utils/getAidStatusStyle";
-
 function getField(program, keys, fallback = "") {
   for (const key of keys) {
     if (program[key] !== undefined && program[key] !== null && program[key] !== "") {
@@ -12,25 +6,6 @@ function getField(program, keys, fallback = "") {
   }
 
   return fallback;
-}
-
-function getStatusLabel(status) {
-  switch (status) {
-    case "likely-eligible":
-      return "Likely match";
-    case "needs-verification":
-      return "Needs verification";
-    default:
-      return "Review needed";
-  }
-}
-
-function getPreviewList(items) {
-  if (!Array.isArray(items) || items.length === 0) {
-    return [];
-  }
-
-  return items.slice(0, 3);
 }
 
 function getExtraCount(items) {
@@ -90,7 +65,7 @@ function renderReasonSection(title, items, toneClasses) {
   );
 }
 
-export default function AidProgramCard({ program, disasterDate }) {
+export default function AidProgramCard({ program }) {
   if (!program) {
     return null;
   }
@@ -109,13 +84,7 @@ export default function AidProgramCard({ program, disasterDate }) {
     null
   );
 
-  const deadline = disasterDate ? calculateAidDeadline(disasterDate, windowDays) : null;
-  const daysRemaining = deadline ? getDaysUntilDeadline(deadline) : null;
-  const hasPassed = typeof daysRemaining === "number" && daysRemaining < 0;
   const eligibilityStatus = getField(program, ["eligibilityStatus"], "");
-  const matchReasons = getPreviewList(program?.matchReasons);
-  const cautionReasons = getPreviewList(program?.cautionReasons);
-  const documentReadinessWarnings = getPreviewList(program?.documentReadinessWarnings);
   const matchReasonsAll = Array.isArray(program?.matchReasons) ? program.matchReasons : [];
   const cautionReasonsAll = Array.isArray(program?.cautionReasons) ? program.cautionReasons : [];
   const documentWarningsAll = Array.isArray(program?.documentReadinessWarnings)
@@ -177,29 +146,6 @@ export default function AidProgramCard({ program, disasterDate }) {
         documentWarningsAll,
         "mt-4 border border-slate-200 bg-slate-50 text-slate-700",
       )}
-
-      <div className="mt-5 rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm">
-        {disasterDate ? (
-          deadline ? (
-            <div className="flex flex-col gap-1">
-              <span className="font-medium text-stone-900">Estimated deadline: {deadline}</span>
-              {hasPassed ? (
-                <span className="font-semibold text-red-700">Deadline passed</span>
-              ) : (
-                <span className="text-stone-600">
-                  {daysRemaining === 0
-                    ? "Deadline is today"
-                    : `${daysRemaining} day${Math.abs(daysRemaining) === 1 ? "" : "s"} remaining`}
-                </span>
-              )}
-            </div>
-          ) : (
-            <span className="font-medium text-stone-700">Unable to calculate deadline</span>
-          )
-        ) : (
-          <span className="font-medium text-stone-700">Enter disaster date</span>
-        )}
-      </div>
     </article>
   );
 }
