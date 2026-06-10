@@ -11,16 +11,6 @@ import { getTopRisks } from '../utils/getTopRisks';
 import { generateRecommendations } from '../utils/generateRecommendations';
 import { calculateProjectedScore } from '../utils/calculateProjectedScore';
 
-const RECOVERY_DOCS = [
-  { id: 'insurance',  docName: 'Home insurance policy',    status: 'missing',  required: true  },
-  { id: 'id',         docName: 'Government-issued ID',      status: 'missing',  required: true  },
-  { id: 'proof_addr', docName: 'Proof of address',          status: 'missing',  required: true  },
-  { id: 'deed_lease', docName: 'Property deed or lease',    status: 'missing',  required: true  },
-  { id: 'pre_photos', docName: 'Pre-disaster home photos',  status: 'missing',  required: true  },
-  { id: 'medical',    docName: 'Medical needs document',    status: 'optional', required: false },
-  { id: 'inventory',  docName: 'Home inventory list',       status: 'optional', required: false },
-];
-
 function impactToPriority(impactLevel) {
   if (impactLevel === 'High')   return 'now';
   if (impactLevel === 'Medium') return 'soon';
@@ -99,7 +89,6 @@ export default function ScoreDashboard() {
   const [topRisks,        setTopRisks]        = useState(null);
   const [recommendations,   setRecommendations]   = useState([]);
   const [selectedActionIds, setSelectedActionIds] = useState([]);
-  const [uploadedDocIds,    setUploadedDocIds]    = useState([]);
 
   useEffect(() => {
     const profile = JSON.parse(localStorage.getItem('homeProfile'));
@@ -127,12 +116,6 @@ export default function ScoreDashboard() {
     }
   }, [homeProfile, regionalRisk]);
 
-  const handleUpload = (docId) => {
-    setUploadedDocIds(prev =>
-      prev.includes(docId) ? prev : [...prev, docId]
-    );
-  };
-
   const handleToggle = (actionId) => {
     setSelectedActionIds(prev =>
       prev.includes(actionId)
@@ -143,8 +126,9 @@ export default function ScoreDashboard() {
 
   const handleStartOver = () => {
     if (!window.confirm('Are you sure? This will reset all your data.')) return;
-    localStorage.removeItem('homeProfile');
+    localStorage.removeItem('selectedZipCode');
     localStorage.removeItem('regionalRisk');
+    localStorage.removeItem('homeProfile');
     navigate('/location');
   };
 
@@ -169,15 +153,6 @@ export default function ScoreDashboard() {
   }
 
   const label = scoreData ? getScoreLabel(scoreData.totalScore) : null;
-
-  const totalRequired    = RECOVERY_DOCS.filter(d => d.required).length;
-  const uploadedRequired = RECOVERY_DOCS.filter(
-    d => d.required && uploadedDocIds.includes(d.id)
-  ).length;
-  const vaultColorClass =
-    uploadedRequired === totalRequired ? 'text-leaf'
-    : uploadedRequired === 0           ? 'text-red-500'
-    :                                    'text-amber-500';
 
   const categories = scoreData
     ? [
@@ -276,28 +251,14 @@ export default function ScoreDashboard() {
 
             <section>
               <p className="text-xs font-medium uppercase tracking-widest text-stone-400 mb-3">
-                Recovery Vault
+                Recovery Center
               </p>
-              <h3 className="text-xl mb-1">Recovery vault</h3>
+              <h3 className="text-xl mb-1">Plan your recovery next</h3>
               <p className="text-sm text-stone-500 mb-6">
-                Upload your key documents now so you're ready to file a claim immediately after a disaster.
+                Use the Recovery Center to organize documents, home photos, mock aid matching,
+                deadlines, and application statuses after you finish preparedness.
               </p>
-              <div className="flex flex-col gap-3">
-                {RECOVERY_DOCS.map(doc => {
-                  const runtimeStatus = uploadedDocIds.includes(doc.id) ? 'uploaded' : doc.status;
-                  return (
-                    <RecoveryPreviewCard
-                      key={doc.id}
-                      docName={doc.docName}
-                      status={runtimeStatus}
-                      onUpload={() => handleUpload(doc.id)}
-                    />
-                  );
-                })}
-              </div>
-              <p className={`mt-4 text-sm font-medium ${vaultColorClass}`}>
-                {uploadedRequired} of {totalRequired} required documents uploaded
-              </p>
+              <RecoveryPreviewCard />
             </section>
           </div>
 
