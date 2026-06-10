@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 const STORAGE_KEY = "recoveryDamageRecord";
 
@@ -52,7 +52,8 @@ const DAMAGE_TYPE_GROUPS = [
 const EMPTY_RECORD = {
   damageDate: "",
   damageTypes: {},
-  notes: "",
+  homePhotos: [],
+  receiptPhotos: [],
 };
 
 function safeParseObject(rawValue) {
@@ -82,15 +83,25 @@ function normalizeRecord(value) {
       parsed.damageTypes && typeof parsed.damageTypes === "object" && !Array.isArray(parsed.damageTypes)
         ? parsed.damageTypes
         : {},
+    homePhotos: Array.isArray(parsed.homePhotos) ? parsed.homePhotos : [],
+    receiptPhotos: Array.isArray(parsed.receiptPhotos) ? parsed.receiptPhotos : [],
   };
 }
 
-function createImageItem(file) {
-  return {
-    id: `${file.name}-${file.lastModified}-${Math.random().toString(36).slice(2)}`,
-    name: file.name,
-    url: URL.createObjectURL(file),
-  };
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      resolve({
+        id: `${file.name}-${file.lastModified}-${Math.random().toString(36).slice(2)}`,
+        name: file.name,
+        url: typeof reader.result === "string" ? reader.result : "",
+      });
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
 }
 
 function PhotoTile({ item, label, onUpload, onRemove }) {
@@ -149,7 +160,7 @@ function PhotoUploadGrid({ title, description, items, minimumSlots = 4, onUpload
         <p className="text-sm font-medium text-stone-600">{items.length} uploaded</p>
       </div>
 
-      <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <div className="mt-5 grid grid-cols-2 gap-4">
         {slots.map((item, index) => (
           <PhotoTile
             key={item?.id || `empty-${index}`}
@@ -172,26 +183,14 @@ export default function RecoveryWorkspace() {
 
     return normalizeRecord(safeParseObject(window.localStorage.getItem(STORAGE_KEY)));
   });
-  const [homePhotos, setHomePhotos] = useState([]);
-  const [receiptPhotos, setReceiptPhotos] = useState([]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(record));
-  }, [record]);
-
-  const selectedDamageDetailCount = Object.values(record.damageTypes).reduce((count, values) => {
-    return count + (Array.isArray(values) ? values.length : 0);
-  }, 0);
+  const [saveStatus, setSaveStatus] = useState("");
 
   const handleRecordChange = (field, value) => {
     setRecord((currentRecord) => ({
       ...currentRecord,
       [field]: value,
     }));
+    setSaveStatus("");
   };
 
   const handleDamageTypeToggle = (groupId, option) => {
@@ -211,95 +210,74 @@ export default function RecoveryWorkspace() {
         },
       };
     });
+    setSaveStatus("");
   };
 
-  const handlePhotoUpload = (kind, file, index) => {
+  const handlePhotoUpload = async (kind, file, index) => {
     if (!file) {
       return;
     }
 
-    const setItems = kind === "home" ? setHomePhotos : setReceiptPhotos;
-    setItems((currentItems) => {
-      const nextItems = [...currentItems];
-      const previousItem = nextItems[index];
+    const imageItem = await readFileAsDataUrl(file);
+    const field = kind === "home" ? "homePhotos" : "receiptPhotos";
 
-      if (previousItem?.url) {
-        URL.revokeObjectURL(previousItem.url);
-      }
+    setRecord((currentRecord) => {
+      const nextItems = [...currentRecord[field]];
+      nextItems[index] = imageItem;
 
-      nextItems[index] = createImageItem(file);
-      return nextItems.filter(Boolean);
+      return {
+        ...currentRecord,
+        [field]: nextItems.filter(Boolean),
+      };
     });
+    setSaveStatus("");
   };
 
   const handlePhotoRemove = (kind, index) => {
-    const setItems = kind === "home" ? setHomePhotos : setReceiptPhotos;
-    setItems((currentItems) => {
-      const nextItems = [...currentItems];
-      const removedItem = nextItems[index];
+    const field = kind === "home" ? "homePhotos" : "receiptPhotos";
 
-      if (removedItem?.url) {
-        URL.revokeObjectURL(removedItem.url);
-      }
-
+    setRecord((currentRecord) => {
+      const nextItems = [...currentRecord[field]];
       nextItems.splice(index, 1);
-      return nextItems;
+
+      return {
+        ...currentRecord,
+        [field]: nextItems,
+      };
     });
+    setSaveStatus("");
+  };
+
+  const handleSave = () => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(record));
+    setSaveStatus("Saved to this browser.");
   };
 
   return (
     <section className="grid gap-6">
-      <section className="rounded-3xl border border-stone-200 bg-white p-6 shadow-sm">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
-              Damage Record Workspace
-            </p>
-            <h2 className="mt-2 text-2xl font-semibold text-stone-900">
-              Document the damage and related expenses
-            </h2>
-            <p className="mt-3 max-w-3xl text-sm leading-6 text-stone-600">
-              Upload damaged-home photos, record the damage date, select the type of loss, and
-              keep receipt photos together for future recovery reports.
-            </p>
-          </div>
-        </div>
+      <div className="grid gap-6 lg:grid-cols-2">
+        <PhotoUploadGrid
+          title="Damaged home photos"
+          description="Start with four core photos. Add more if you need additional rooms, angles, or damage details."
+          items={record.homePhotos}
+          minimumSlots={4}
+          onUpload={(file, index) => handlePhotoUpload("home", file, index)}
+          onRemove={(index) => handlePhotoRemove("home", index)}
+        />
 
-        <div className="mt-6 grid gap-4 md:grid-cols-3">
-          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">
-              Home photos
-            </p>
-            <p className="mt-2 text-2xl font-semibold text-stone-950">{homePhotos.length}</p>
-            <p className="mt-1 text-sm leading-5 text-stone-600">Damage evidence images</p>
-          </div>
-          <div className="rounded-2xl border border-sky-200 bg-sky-50 p-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-sky-700">
-              Damage details
-            </p>
-            <p className="mt-2 text-2xl font-semibold text-stone-950">
-              {selectedDamageDetailCount}
-            </p>
-            <p className="mt-1 text-sm leading-5 text-stone-600">Selected loss details</p>
-          </div>
-          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-700">
-              Receipts
-            </p>
-            <p className="mt-2 text-2xl font-semibold text-stone-950">{receiptPhotos.length}</p>
-            <p className="mt-1 text-sm leading-5 text-stone-600">Expense photos uploaded</p>
-          </div>
-        </div>
-      </section>
-
-      <PhotoUploadGrid
-        title="Damaged home photos"
-        description="Start with four core photos. Add more if you need to show additional rooms, angles, or damage details."
-        items={homePhotos}
-        minimumSlots={4}
-        onUpload={(file, index) => handlePhotoUpload("home", file, index)}
-        onRemove={(index) => handlePhotoRemove("home", index)}
-      />
+        <PhotoUploadGrid
+          title="Receipt photos"
+          description="Upload receipts for hotel stays, emergency supplies, temporary repairs, food replacement, or transportation."
+          items={record.receiptPhotos}
+          minimumSlots={4}
+          onUpload={(file, index) => handlePhotoUpload("receipt", file, index)}
+          onRemove={(index) => handlePhotoRemove("receipt", index)}
+        />
+      </div>
 
       <section className="rounded-3xl border border-stone-200 bg-white p-6 shadow-sm">
         <div>
@@ -367,29 +345,26 @@ export default function RecoveryWorkspace() {
             })}
           </div>
 
-          <label className="block">
-            <span className="mb-2 block text-sm font-semibold text-stone-800">
-              Additional notes
-            </span>
-            <textarea
-              value={record.notes}
-              onChange={(event) => handleRecordChange("notes", event.target.value)}
-              placeholder="Add any important context, such as where the damage happened, whether the home is livable, or what costs were caused by the event."
-              rows={4}
-              className="w-full resize-y rounded-2xl border border-stone-200 bg-white px-4 py-3 text-sm leading-6 text-stone-900 outline-none transition-colors placeholder:text-stone-400 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/15"
-            />
-          </label>
+          <div className="flex flex-col gap-3 border-t border-stone-100 pt-5 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm leading-6 text-stone-500">
+              Save stores the date, damage selections, home photos, and receipt photos in this
+              browser.
+            </p>
+            <div className="flex flex-col gap-2 sm:items-end">
+              <button
+                type="button"
+                onClick={handleSave}
+                className="inline-flex items-center justify-center rounded-full bg-emerald-700 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-emerald-800"
+              >
+                Save Damage Record
+              </button>
+              {saveStatus ? (
+                <p className="text-sm font-medium text-emerald-700">{saveStatus}</p>
+              ) : null}
+            </div>
+          </div>
         </div>
       </section>
-
-      <PhotoUploadGrid
-        title="Receipt photos"
-        description="Upload receipts for disaster-related expenses, such as hotel stays, emergency supplies, temporary repairs, food replacement, or transportation."
-        items={receiptPhotos}
-        minimumSlots={4}
-        onUpload={(file, index) => handlePhotoUpload("receipt", file, index)}
-        onRemove={(index) => handlePhotoRemove("receipt", index)}
-      />
     </section>
   );
 }
