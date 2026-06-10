@@ -2,40 +2,16 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Button from "../components/ui/Button";
 import Input from "../components/ui/Input";
-import { fallbackRiskData, regionalRiskData } from "../data/regionalRiskData";
-import { lookupZipCode } from "../services/zipLookupService";
+import { regionalRiskData } from "../data/regionalRiskData";
+import { getRegionalRiskByZip } from "../services/riskLookupService";
 
 function saveResolvedLocation(submittedZipCode, regionalRiskProfile) {
   localStorage.setItem("selectedZipCode", submittedZipCode);
   localStorage.setItem("regionalRisk", JSON.stringify(regionalRiskProfile));
 }
 
-function hasLookupValue(value) {
-  return value !== undefined && value !== null && value !== "";
-}
-
-function getLookupFields(zipLookup) {
-  if (!zipLookup) {
-    return {};
-  }
-
-  return {
-    ...(hasLookupValue(zipLookup.city) ? { city: zipLookup.city } : {}),
-    ...(hasLookupValue(zipLookup.state) ? { state: zipLookup.state } : {}),
-    ...(hasLookupValue(zipLookup.stateCode)
-      ? { stateCode: zipLookup.stateCode }
-      : {}),
-    ...(hasLookupValue(zipLookup.latitude)
-      ? { latitude: zipLookup.latitude }
-      : {}),
-    ...(hasLookupValue(zipLookup.longitude)
-      ? { longitude: zipLookup.longitude }
-      : {}),
-    ...(hasLookupValue(zipLookup.source)
-      ? { zipLookupSource: zipLookup.source }
-      : {}),
-  };
-}
+const RISK_LOOKUP_ERROR =
+  "We could not find regional risk data for this ZIP code. Please check the ZIP code and try again.";
 
 export default function LocationInput() {
   const navigate = useNavigate();
@@ -68,13 +44,13 @@ export default function LocationInput() {
   async function handleSubmit(event) {
     event.preventDefault();
 
-    const submittedZipCode = zipCode.trim();
+    const normalizedZipCode = String(zipCode ?? "").trim();
 
     if (isLookingUp) {
       return;
     }
 
-    if (!submittedZipCode) {
+    if (!normalizedZipCode) {
       setError("Enter a ZIP code to check regional risk.");
       setResolvedRiskProfile(null);
       setStatusMessage("");
@@ -86,41 +62,24 @@ export default function LocationInput() {
     setStatusMessage("");
 
     try {
-      const zipLookup = await lookupZipCode(submittedZipCode);
-      const matchingRiskProfile = regionalRiskData.find(
-        (regionalRiskProfile) => regionalRiskProfile.zipCode === submittedZipCode
-      );
-      const lookupFields = getLookupFields(zipLookup);
+      const regionalRisk = await getRegionalRiskByZip(normalizedZipCode);
 
-      const resolvedProfile = matchingRiskProfile
-        ? {
-            ...matchingRiskProfile,
-            ...lookupFields,
-          }
-        : {
-            ...fallbackRiskData,
-            ...lookupFields,
-            zipCode: submittedZipCode,
-          };
-
-      saveResolvedLocation(submittedZipCode, resolvedProfile);
-      setResolvedRiskProfile(resolvedProfile);
-
-      if (!zipLookup) {
-        setStatusMessage(
-          "ZIP lookup could not be verified, so fallback location details may be used."
-        );
-      } else if (matchingRiskProfile) {
-        setStatusMessage(
-          `Regional profile ready for ${resolvedProfile.city}, ${resolvedProfile.state}.`
-        );
-      } else {
-        setStatusMessage(
-          "This ZIP is outside the sample set, so a general regional profile will be used."
-        );
+      if (!regionalRisk) {
+        setError(RISK_LOOKUP_ERROR);
+        setResolvedRiskProfile(null);
+        return;
       }
 
+      saveResolvedLocation(normalizedZipCode, regionalRisk);
+      setResolvedRiskProfile(regionalRisk);
+      setStatusMessage(
+        `Regional profile ready for ${regionalRisk.city}, ${regionalRisk.state}.`
+      );
       navigate("/risk");
+    } catch (error) {
+      console.error("Unexpected regional risk lookup error:", error);
+      setError(RISK_LOOKUP_ERROR);
+      setResolvedRiskProfile(null);
     } finally {
       setIsLookingUp(false);
     }
@@ -138,8 +97,8 @@ export default function LocationInput() {
           </h1>
           <p className="mt-5 max-w-xl text-base text-stone-600 sm:text-lg">
             Enter a ZIP code to prepare a regional risk profile before the home
-            readiness questions. Sample ZIPs use the MVP data set; other ZIPs
-            continue with a general profile.
+            readiness questions. Sample ZIPs are available for testing the MVP
+            flow.
           </p>
         </div>
 
@@ -217,7 +176,9 @@ export default function LocationInput() {
             ) : null}
 
             <Button type="submit" size="lg" fullWidth disabled={isLookingUp}>
-              {isLookingUp ? "Checking ZIP..." : "Continue to Regional Risk"}
+              {isLookingUp
+                ? "Checking regional risk..."
+                : "Continue to Regional Risk"}
             </Button>
           </div>
         </form>
