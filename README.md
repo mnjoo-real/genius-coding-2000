@@ -229,6 +229,23 @@ For Vercel:
 - Preserve localStorage backward compatibility when changing profile or recovery data models.
 - Run `npm run build` before submitting changes.
 
+## AI Usage Disclosure
+
+AI tools including Claude Code, Codex, Claude, and ChatGPT were used in the following areas:
+
+- assisting software development
+- generating initial code structure
+- organizing code
+- implementing user interface components
+- debugging and error resolution
+- finding sources supporting the presentation
+- refining `DEVPOST` and `README.md`
+- creating mock data
+- creating and updating `AGENT_GUIDE.md`
+- creating the data processing algorithm
+
+All AI-generated output was reviewed and tested, and was used primarily as a starting point for the structure of the project. AI served as a productivity tool to help realize the team’s ideas efficiently. The core ideas, topic interpretation, feature set, and design decisions were made by the project team.
+
 ## Credits
 
 - Built with React, Vite, Tailwind CSS, React Router, Supabase, Recharts, and `react-globe.gl`.
