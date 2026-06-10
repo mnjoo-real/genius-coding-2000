@@ -7,6 +7,7 @@ import LocationInput from "./pages/LocationInput";
 import RiskOverview from "./pages/RiskOverview";
 import HomeQuestionnaire from "./pages/HomeQuestionnaire";
 import ScoreDashboard from "./pages/ScoreDashboard";
+import Recovery from "./pages/Recovery";
 
 function AppLayout() {
   return (
@@ -20,6 +21,7 @@ function AppLayout() {
           <Route path="/risk" element={<RiskOverview />} />
           <Route path="/questionnaire" element={<HomeQuestionnaire />} />
           <Route path="/dashboard" element={<ScoreDashboard />} />
+          <Route path="/recovery" element={<Recovery />} />
         </Routes>
       </div>
       <Footbar />
