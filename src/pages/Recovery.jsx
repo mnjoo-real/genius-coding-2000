@@ -85,7 +85,7 @@ export default function Recovery() {
           </div>
         </section>
 
-        <RecoveryChecklist />
+        <RecoveryChecklist matchedPrograms={matchedPrograms ?? []} />
         <HomePhotoGallery />
         <AidEligibilityForm
           answers={answers}
