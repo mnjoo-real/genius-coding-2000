@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import HomePhotoUploadGrid from "../components/recovery/HomePhotoUploadGrid";
 import { calculateScore } from "../utils/calculateScore";
@@ -101,32 +101,132 @@ const CATEGORY_FIELDS = [
   { key: "recoveryPreparednessScore", label: "Recovery preparedness" },
 ];
 
+function ReportRow({ label, value }) {
+  return (
+    <div className="flex items-center gap-3">
+      <span className="w-24 shrink-0 text-[10px] font-medium uppercase tracking-[0.12em] text-stone-400">
+        {label}
+      </span>
+      <span className="min-w-0 flex-1 truncate rounded bg-stone-100 px-2.5 py-1.5 text-xs font-medium text-stone-700">
+        {value}
+      </span>
+    </div>
+  );
+}
+
+function PreparednessReport({ selectedZipCode, scoreData, scoreUnavailable }) {
+  return (
+    <section className="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-md lg:sticky lg:top-20">
+      <div className="flex items-center gap-2.5 bg-forest px-5 py-3">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+          <path
+            d="M7 1.5C4 1.5 1.5 4 1.5 7S4 12.5 7 12.5 12.5 10 12.5 7 10 1.5 7 1.5z"
+            stroke="rgba(255,255,255,0.5)"
+            strokeWidth="1.2"
+          />
+          <path
+            d="M4.75 7.25 6.3 8.8 9.4 5.7"
+            stroke="white"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="1.3"
+          />
+        </svg>
+        <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white">
+          Canopy Preparedness Report
+        </span>
+      </div>
+
+      <div className="flex flex-col gap-5 p-5">
+        <div className="space-y-2">
+          <ReportRow label="ZIP code" value={selectedZipCode || "Not provided"} />
+          <ReportRow
+            label="Current"
+            value={scoreData ? `${scoreData.totalScore}/100` : "Score unavailable"}
+          />
+          <ReportRow
+            label="Potential"
+            value={scoreData ? `${scoreData.maxAchievableScore}/100` : "Score unavailable"}
+          />
+        </div>
+
+        <div className="h-px bg-stone-100" />
+
+        <div>
+          <p className="mb-3 text-[10px] font-semibold uppercase tracking-wider text-stone-500">
+            Score Breakdown
+          </p>
+          {!scoreData ? (
+            <p className="rounded-lg bg-stone-50 px-3 py-2 text-xs text-stone-500">
+              {scoreUnavailable ? "Score unavailable." : "Score unavailable."}
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {CATEGORY_FIELDS.map((category) => {
+                const score = getCategoryScore(scoreData, category.key);
+
+                return (
+                  <div key={category.key} className="flex items-center gap-3">
+                    <span className="w-28 shrink-0 text-[11px] text-stone-600">
+                      {category.label}
+                    </span>
+                    <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-stone-100">
+                      <div
+                        className="h-full rounded-full bg-leaf"
+                        style={{ width: `${Math.min((score / 25) * 100, 100)}%` }}
+                      />
+                    </div>
+                    <span className="w-10 text-right text-[11px] tabular-nums text-stone-500">
+                      {score}/25
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <div className="h-px bg-stone-100" />
+
+        <div>
+          <p className="mb-3 text-[10px] font-semibold uppercase tracking-wider text-stone-500">
+            Priority Notes
+          </p>
+          {scoreData?.weaknesses?.length ? (
+            <div className="space-y-1.5">
+              {scoreData.weaknesses.slice(0, 5).map((weakness) => (
+                <div key={weakness} className="flex items-start gap-2">
+                  <div className="mt-1 h-2.5 w-2.5 shrink-0 rounded-sm border border-leaf/40 bg-moss" />
+                  <span className="text-[11px] leading-5 text-stone-600">{weakness}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-stone-500">No major vulnerabilities detected.</p>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export default function UserInfo() {
-  const [selectedZipCode, setSelectedZipCode] = useState(null);
-  const [regionalRisk, setRegionalRisk] = useState(null);
-  const [homeProfile, setHomeProfile] = useState(null);
-  const [scoreData, setScoreData] = useState(null);
-  const [scoreUnavailable, setScoreUnavailable] = useState(false);
+  const selectedZipCode = readStorageValue("selectedZipCode");
+  const regionalRisk = readStorageValue("regionalRisk");
+  const homeProfile = readStorageValue("homeProfile");
 
-  useEffect(() => {
-    setSelectedZipCode(readStorageValue("selectedZipCode"));
-    setRegionalRisk(readStorageValue("regionalRisk"));
-    setHomeProfile(readStorageValue("homeProfile"));
-  }, []);
-
-  useEffect(() => {
+  const { scoreData, scoreUnavailable } = useMemo(() => {
     if (!regionalRisk || !homeProfile) {
-      setScoreData(null);
-      setScoreUnavailable(false);
-      return;
+      return { scoreData: null, scoreUnavailable: false };
     }
 
     try {
-      setScoreData(calculateScore(regionalRisk, homeProfile));
-      setScoreUnavailable(false);
+      return {
+        scoreData: calculateScore(regionalRisk, homeProfile),
+        scoreUnavailable: false,
+      };
     } catch {
-      setScoreData(null);
-      setScoreUnavailable(true);
+      return { scoreData: null, scoreUnavailable: true };
     }
   }, [regionalRisk, homeProfile]);
 
@@ -166,143 +266,104 @@ export default function UserInfo() {
 
   return (
     <main className="min-h-screen bg-parchment px-6 py-10">
-      <div className="mx-auto flex max-w-6xl flex-col gap-8">
-        <section className="rounded-3xl border border-stone-200 bg-white p-6 shadow-sm">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
-                Preparedness Profile
-              </p>
-              <h1 className="mt-2 text-3xl font-semibold text-stone-900">User Info</h1>
-              <p className="mt-3 max-w-3xl text-sm leading-6 text-stone-600">
-                Review your saved location, home assessment answers, and readiness profile.
-              </p>
-            </div>
-
-            <Link
-              to="/dashboard"
-              className="inline-flex items-center justify-center rounded-full border border-stone-200 bg-stone-50 px-4 py-2 text-sm font-semibold text-stone-700 transition-colors hover:border-stone-300 hover:bg-stone-100"
-            >
-              Back to Dashboard
-            </Link>
-          </div>
-        </section>
-
-        <section className="rounded-3xl border border-stone-200 bg-white p-6 shadow-sm">
-          <h2 className="text-xl font-semibold text-stone-900">Location summary</h2>
-          <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">
-                ZIP code
-              </p>
-              <p className="mt-2 text-lg font-semibold text-stone-900">
-                {selectedZipCode || "Not provided"}
-              </p>
-            </div>
-
-            {RISK_FIELDS.map((risk) => (
-              <div
-                key={risk.key}
-                className="rounded-2xl border border-stone-200 bg-stone-50 p-4"
-              >
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">
-                  {risk.label}
-                </p>
-                <p className="mt-2 text-lg font-semibold text-stone-900">
-                  {getRiskValue(regionalRisk, risk.key)}
-                </p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section className="rounded-3xl border border-stone-200 bg-white p-6 shadow-sm">
-          <h2 className="text-xl font-semibold text-stone-900">Readiness score summary</h2>
-          {!scoreData ? (
-            <p className="mt-4 text-sm text-stone-600">
-              {scoreUnavailable ? "Score unavailable." : "Score unavailable."}
+      <div className="mx-auto max-w-6xl">
+        <section className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-leaf">
+              Preparedness Profile
             </p>
-          ) : (
-            <>
-              <div className="mt-5 grid gap-4 lg:grid-cols-2">
-                <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-5">
-                  <p className="text-sm font-medium text-emerald-800">Current score</p>
-                  <p className="mt-2 text-3xl font-semibold text-stone-900">
-                    {scoreData.totalScore}/100
+            <h1 className="mt-2 text-3xl sm:text-4xl">User Info</h1>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-stone-600">
+              Review your saved location, home assessment answers, and readiness profile in one
+              report.
+            </p>
+          </div>
+
+          <Link
+            to="/dashboard"
+            className="inline-flex items-center justify-center rounded-full border border-stone-200 bg-white px-4 py-2 text-sm font-semibold text-stone-700 no-underline shadow-sm transition-colors hover:border-stone-300 hover:bg-stone-50 hover:text-stone-900"
+          >
+            Back to Dashboard
+          </Link>
+        </section>
+
+        <div className="grid gap-8 lg:grid-cols-[minmax(300px,380px)_1fr] lg:items-start">
+          <PreparednessReport
+            selectedZipCode={selectedZipCode}
+            scoreData={scoreData}
+            scoreUnavailable={scoreUnavailable}
+          />
+
+          <div className="flex min-w-0 flex-col gap-6">
+            <section className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
+              <h2 className="text-xl">Location summary</h2>
+              <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                <div
+                  className="rounded-xl border border-stone-200 bg-stone-50 p-4"
+                >
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-500">
+                    ZIP code
+                  </p>
+                  <p className="mt-2 text-lg font-semibold text-stone-900">
+                    {selectedZipCode || "Not provided"}
                   </p>
                 </div>
-                <div className="rounded-2xl border border-stone-200 bg-stone-50 p-5">
-                  <p className="text-sm font-medium text-stone-700">Maximum achievable score</p>
-                  <p className="mt-2 text-3xl font-semibold text-stone-900">
-                    {scoreData.maxAchievableScore}/100
-                  </p>
-                </div>
-              </div>
 
-              <p className="mt-4 text-sm leading-6 text-stone-600">
-                Location risk is based on your saved ZIP code, while the other categories can
-                improve through actions.
-              </p>
-
-              <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                {CATEGORY_FIELDS.map((category) => (
+                {RISK_FIELDS.map((risk) => (
                   <div
-                    key={category.key}
-                    className="rounded-2xl border border-stone-200 bg-stone-50 p-4"
+                    key={risk.key}
+                    className="rounded-xl border border-stone-200 bg-stone-50 p-4"
                   >
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">
-                      {category.label}
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-500">
+                      {risk.label}
                     </p>
-                    <p className="mt-2 text-2xl font-semibold text-stone-900">
-                      {getCategoryScore(scoreData, category.key)}/25
+                    <p className="mt-2 text-lg font-semibold text-stone-900">
+                      {getRiskValue(regionalRisk, risk.key)}
                     </p>
                   </div>
                 ))}
               </div>
-            </>
-          )}
-        </section>
+            </section>
 
-        <section className="rounded-3xl border border-stone-200 bg-white p-6 shadow-sm">
-          <h2 className="text-xl font-semibold text-stone-900">Weaknesses</h2>
-          {scoreData?.weaknesses?.length ? (
-            <ul className="mt-4 space-y-3 text-sm leading-6 text-stone-700">
-              {scoreData.weaknesses.map((weakness) => (
-                <li
-                  key={weakness}
-                  className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3"
-                >
-                  {weakness}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="mt-4 text-sm text-stone-600">No major vulnerabilities detected.</p>
-          )}
-        </section>
+            <HomePhotoUploadGrid />
 
-        <HomePhotoUploadGrid />
-
-        <section className="rounded-3xl border border-stone-200 bg-white p-6 shadow-sm">
-          <h2 className="text-xl font-semibold text-stone-900">Home questionnaire answers</h2>
-          {homeProfileEntries.length === 0 ? (
-            <p className="mt-4 text-sm text-stone-600">No saved questionnaire answers found.</p>
-          ) : (
-            <div className="mt-5 grid gap-4 md:grid-cols-2">
-              {homeProfileEntries.map(([key, value]) => (
-                <div
-                  key={key}
-                  className="rounded-2xl border border-stone-200 bg-stone-50 p-4"
-                >
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">
-                    {formatLabel(key)}
+            <section className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-stone-400">
+                    Saved answers
                   </p>
-                  <p className="mt-2 text-sm leading-6 text-stone-800">{formatValue(value)}</p>
+                  <h2 className="mt-1 text-xl">Home questionnaire</h2>
                 </div>
-              ))}
-            </div>
-          )}
-        </section>
+                <span className="text-xs text-stone-400">
+                  {homeProfileEntries.length} fields
+                </span>
+              </div>
+
+              {homeProfileEntries.length === 0 ? (
+                <p className="mt-4 text-sm text-stone-600">
+                  No saved questionnaire answers found.
+                </p>
+              ) : (
+                <div className="mt-5 grid gap-3 md:grid-cols-2">
+                  {homeProfileEntries.map(([key, value]) => (
+                    <div
+                      key={key}
+                      className="rounded-xl border border-stone-200 bg-stone-50 p-4"
+                    >
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-500">
+                        {formatLabel(key)}
+                      </p>
+                      <p className="mt-2 text-sm leading-6 text-stone-800">
+                        {formatValue(value)}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+          </div>
+        </div>
       </div>
     </main>
   );
