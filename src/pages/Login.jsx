@@ -110,7 +110,7 @@ export default function Login() {
       <div className="mx-auto flex max-w-6xl items-center">
         <section className="w-full overflow-hidden rounded-3xl border border-stone-200 bg-white shadow-sm">
           <div className="grid lg:grid-cols-[1.1fr_0.9fr]">
-            <div className="border-b border-stone-100 bg-gradient-to-br from-moss/40 via-white to-parchment p-8 sm:p-10 lg:border-b-0 lg:border-r">
+            <div className="border-b border-stone-100 bg-linear-to-br from-moss/40 via-white to-parchment p-8 sm:p-10 lg:border-b-0 lg:border-r">
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-leaf">
                 Login
               </p>
