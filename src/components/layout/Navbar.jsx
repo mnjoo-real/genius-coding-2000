@@ -5,9 +5,10 @@ import { signOutLocalAccount } from '../../services/localAuthService';
 
 const baseNavLinks = [
   { label: 'Home', to: '/' },
+  { label: 'Risk', to: '/risk' },
   { label: 'My Canopy', to: '/dashboard' },
-  { label: 'Recovery', to: '/recovery' },
   { label: 'My Info', to: '/user-info' },
+  { label: 'Recovery', to: '/recovery' },
 ];
 
 function NavLink({ label, to, active, onClick }) {
