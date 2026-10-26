@@ -1,4 +1,4 @@
-# SELECTED AS THE TOP PROJECT IN THE GENIUS OLYMPIAD CODING DIVISION 🏆
+# 🏆 SELECTED AS THE TOP PROJECT IN THE GENIUS OLYMPIAD CODING DIVISION 🏆
 [**View Canopy on Devpost →**](https://devpost.com/software/canopy-2l5z17?ref_content=user-portfolio&ref_feature=in_progress)
 
 # Canopy
